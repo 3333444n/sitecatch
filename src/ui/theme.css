@@ -1,0 +1,157 @@
+/*
+ * Sitecatch design tokens. Neutral, quiet, slightly Notion-like.
+ * Components must consume these variables rather than hard-coded values.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* Typography */
+  --sc-font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue',
+    Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji';
+  --sc-font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+  --sc-font-size-xs: 11px;
+  --sc-font-size-sm: 12px;
+  --sc-font-size-md: 14px;
+  --sc-font-size-lg: 16px;
+  --sc-font-size-xl: 20px;
+  --sc-font-size-2xl: 26px;
+  --sc-line-height: 1.5;
+  --sc-font-weight-regular: 400;
+  --sc-font-weight-medium: 500;
+  --sc-font-weight-bold: 600;
+
+  /* Spacing (4px scale) */
+  --sc-space-1: 4px;
+  --sc-space-2: 8px;
+  --sc-space-3: 12px;
+  --sc-space-4: 16px;
+  --sc-space-5: 20px;
+  --sc-space-6: 24px;
+  --sc-space-8: 32px;
+  --sc-space-10: 40px;
+
+  /* Radius */
+  --sc-radius-sm: 4px;
+  --sc-radius-md: 6px;
+  --sc-radius-lg: 10px;
+  --sc-radius-full: 999px;
+
+  /* Motion */
+  --sc-transition: 120ms ease;
+
+  /* Layout */
+  --sc-popup-width: 380px;
+  --sc-options-max-width: 760px;
+
+  /* Colors: light */
+  --sc-color-bg: #ffffff;
+  --sc-color-bg-subtle: #f7f7f5;
+  --sc-color-bg-hover: #efefed;
+  --sc-color-bg-active: #e7e7e4;
+  --sc-color-surface: #ffffff;
+  --sc-color-border: #e3e2e0;
+  --sc-color-border-strong: #c9c8c5;
+  --sc-color-text: #37352f;
+  --sc-color-text-muted: #787774;
+  --sc-color-text-subtle: #a5a4a0;
+  --sc-color-text-on-accent: #ffffff;
+  --sc-color-accent: #2383e2;
+  --sc-color-accent-hover: #1b6fc2;
+  --sc-color-accent-subtle: #e7f1fb;
+  --sc-color-success: #2e7d4f;
+  --sc-color-success-subtle: #e6f3ea;
+  --sc-color-warning: #b26b00;
+  --sc-color-warning-subtle: #fbf1df;
+  --sc-color-danger: #d44c47;
+  --sc-color-danger-subtle: #fbe9e8;
+  --sc-color-focus: rgba(35, 131, 226, 0.45);
+  --sc-shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.06);
+  --sc-shadow-md: 0 4px 12px rgba(15, 15, 15, 0.1), 0 0 0 1px rgba(15, 15, 15, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sc-color-bg: #191919;
+    --sc-color-bg-subtle: #202020;
+    --sc-color-bg-hover: #2a2a2a;
+    --sc-color-bg-active: #333333;
+    --sc-color-surface: #252525;
+    --sc-color-border: #333333;
+    --sc-color-border-strong: #4a4a4a;
+    --sc-color-text: #e6e6e4;
+    --sc-color-text-muted: #9b9a97;
+    --sc-color-text-subtle: #6f6e6b;
+    --sc-color-text-on-accent: #ffffff;
+    --sc-color-accent: #3a8fe6;
+    --sc-color-accent-hover: #5aa2ec;
+    --sc-color-accent-subtle: #1e2f42;
+    --sc-color-success: #4caf7a;
+    --sc-color-success-subtle: #1d2e24;
+    --sc-color-warning: #e0a03a;
+    --sc-color-warning-subtle: #33291a;
+    --sc-color-danger: #e5645f;
+    --sc-color-danger-subtle: #3a2120;
+    --sc-color-focus: rgba(58, 143, 230, 0.55);
+    --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --sc-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--sc-color-bg);
+  color: var(--sc-color-text);
+  font-family: var(--sc-font-sans);
+  font-size: var(--sc-font-size-md);
+  line-height: var(--sc-line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0 0 var(--sc-space-2);
+  font-weight: var(--sc-font-weight-bold);
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: var(--sc-font-size-xl);
+}
+
+p {
+  margin: 0 0 var(--sc-space-3);
+}
+
+a {
+  color: var(--sc-color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--sc-color-focus);
+  outline-offset: 1px;
+}
+
+.sc-popup {
+  width: var(--sc-popup-width);
+  padding: var(--sc-space-4);
+}
+
+.sc-options {
+  max-width: var(--sc-options-max-width);
+  margin: 0 auto;
+  padding: var(--sc-space-8) var(--sc-space-6);
+}
