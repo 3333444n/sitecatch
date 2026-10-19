@@ -10,6 +10,10 @@ export type IconName =
   | 'external'
   | 'chevron-down'
   | 'chevron-right'
+  | 'chevron-up'
+  | 'eye'
+  | 'eye-off'
+  | 'refresh'
   | 'image'
   | 'plus'
   | 'file'
@@ -41,6 +45,25 @@ const PATHS: Record<IconName, JSX.Element> = {
   external: <path d="M9.5 2.5h4v4M13.5 2.5L7.5 8.5M11.5 9.5v3.5h-9v-9H6" />,
   'chevron-down': <path d="M4 6l4 4 4-4" />,
   'chevron-right': <path d="M6 4l4 4-4 4" />,
+  'chevron-up': <path d="M4 10l4-4 4 4" />,
+  eye: (
+    <>
+      <path d="M1.75 8S4 3.75 8 3.75 14.25 8 14.25 8 12 12.25 8 12.25 1.75 8 1.75 8z" />
+      <circle cx="8" cy="8" r="2" />
+    </>
+  ),
+  'eye-off': (
+    <>
+      <path d="M6.6 4.9A6 6 0 018 3.75C12 3.75 14.25 8 14.25 8a10.9 10.9 0 01-1.6 2.2M9.4 11.1A6 6 0 018 12.25C4 12.25 1.75 8 1.75 8a10.9 10.9 0 011.6-2.2" />
+      <path d="M6.6 6.6a2 2 0 002.8 2.8M2.5 2.5l11 11" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M13.25 8a5.25 5.25 0 01-9.4 3.2M2.75 8a5.25 5.25 0 019.4-3.2" />
+      <path d="M12.5 2v3h-3M3.5 14v-3h3" />
+    </>
+  ),
   image: (
     <>
       <rect x="2" y="3" width="12" height="10" rx="1.5" />

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/preact';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'preact/hooks';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AppError, AppErrorAction } from '@/lib/errors';
 import { ErrorBanner, ERROR_ACTION_LABELS } from './Banner';
@@ -8,6 +9,8 @@ import { Chip, notionColorClass } from './Chip';
 import { Field } from './Field';
 import { ScreenshotSlot } from './ScreenshotSlot';
 import { Stepper } from './Stepper';
+import { Icon } from './Icon';
+import { SegmentedControl } from './SegmentedControl';
 import { Tabs } from './Tabs';
 import { TextInput } from './TextInput';
 import { Thumbnail } from './Thumbnail';
@@ -192,5 +195,76 @@ describe('Tabs', () => {
     tab.focus();
     await userEvent.keyboard('{ArrowRight}');
     expect(onChange).toHaveBeenCalledWith('settings');
+  });
+});
+
+describe('SegmentedControl', () => {
+  const options = [
+    { value: 'extractor', label: 'From the page' },
+    { value: 'static', label: 'Fixed value' },
+    { value: 'ask', label: 'Ask in popup', disabled: true },
+    { value: 'none', label: 'Empty' },
+  ];
+
+  function Harness({ onChange }: { onChange: (v: string) => void }) {
+    const [value, setValue] = useState('extractor');
+    return (
+      <SegmentedControl
+        label="Source"
+        value={value}
+        options={options}
+        onChange={(v) => {
+          setValue(v);
+          onChange(v);
+        }}
+      />
+    );
+  }
+
+  it('exposes a radio group with one checked radio and a single tab stop', () => {
+    render(<SegmentedControl label="Source" value="static" options={options} onChange={vi.fn()} />);
+    const group = screen.getByRole('radiogroup', { name: 'Source' });
+    const radios = screen.getAllByRole('radio');
+    expect(group.contains(radios[0] ?? null)).toBe(true);
+    expect(radios.map((r) => r.getAttribute('aria-checked'))).toEqual(['false', 'true', 'false', 'false']);
+    expect(radios.map((r) => r.tabIndex)).toEqual([-1, 0, -1, -1]);
+  });
+
+  it('selects on click and ignores clicks on the selected segment', async () => {
+    const onChange = vi.fn();
+    render(<SegmentedControl label="Source" value="extractor" options={options} onChange={onChange} />);
+    await userEvent.click(screen.getByRole('radio', { name: 'From the page' }));
+    expect(onChange).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('radio', { name: 'Fixed value' }));
+    expect(onChange).toHaveBeenCalledWith('static');
+  });
+
+  it('moves selection and focus with arrow keys, skipping disabled segments and wrapping', async () => {
+    const onChange = vi.fn();
+    render(<Harness onChange={onChange} />);
+    screen.getByRole('radio', { name: 'From the page' }).focus();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenLastCalledWith('static');
+    await userEvent.keyboard('{ArrowDown}');
+    expect(onChange).toHaveBeenLastCalledWith('none');
+    expect(document.activeElement).toBe(screen.getByRole('radio', { name: 'Empty' }));
+    await userEvent.keyboard('{ArrowRight}');
+    expect(onChange).toHaveBeenLastCalledWith('extractor');
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(onChange).toHaveBeenLastCalledWith('none');
+    await userEvent.keyboard('{Home}');
+    expect(onChange).toHaveBeenLastCalledWith('extractor');
+    await userEvent.keyboard('{End}');
+    expect(onChange).toHaveBeenLastCalledWith('none');
+    expect(screen.getByRole('radio', { name: 'Empty' }).getAttribute('aria-checked')).toBe('true');
+  });
+});
+
+describe('Icon', () => {
+  it.each(['eye', 'eye-off', 'refresh', 'chevron-up'] as const)('renders %s', (name) => {
+    const { container } = render(<Icon name={name} label={name} />);
+    const svg = container.querySelector('svg');
+    expect(svg?.getAttribute('aria-label')).toBe(name);
+    expect(svg?.children.length).toBeGreaterThan(0);
   });
 });
