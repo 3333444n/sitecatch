@@ -18,8 +18,9 @@ pnpm dev:firefox   # or: pnpm dev (Chrome)
   git worktree add ../sitecatch-wt/<name> -b <type>/<name>   # e.g. feat/tech-extractor, fix/dup-check
   ```
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Keep commits small.
-- Run **`pnpm check`** before opening a PR or merging (typecheck, lint, tests, Firefox build, web-ext lint). `web-ext lint` reports one known warning about `innerHTML` in Preact's bundled `jsx-runtime`; it's harmless and not an error.
-- Contract files (types, the extractor compatibility table, messaging protocol, storage items, errors, theme tokens) are shared interfaces. Propose changes in an issue or PR description first. See [AGENTS.md](AGENTS.md#contract-files-frozen).
+- Run **`pnpm check`** before opening a PR (typecheck, lint, tests, Firefox build, web-ext lint). `web-ext lint` reports one known warning about `innerHTML` in Preact's bundled `jsx-runtime`; it's harmless and not an error.
+- Open a pull request against `main` on [GitHub](https://github.com/3333444n/sitecatch). The maintainer reviews and merges; nothing is merged into `main` locally.
+- Contract files (types, the extractor compatibility table, messaging protocol, storage items, errors, theme tokens) are shared interfaces. Propose changes in an [issue](https://github.com/3333444n/sitecatch/issues) or PR description first. See [AGENTS.md](AGENTS.md#contract-files-frozen).
 
 ## Docs
 
