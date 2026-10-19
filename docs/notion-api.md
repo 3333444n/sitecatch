@@ -52,7 +52,7 @@ Notes:
 - `GET /v1/users/me` works whatever the connection's user-information capability is, so "No user information" is enough. The response includes `bot.workspace_name` and `bot.workspace_limits.max_file_upload_size_in_bytes`. The client reads the upload limit from there; it is returned as `maxFileUploadBytes` by `auth/validate` / `auth/status` and stored in `AuthState.maxFileUploadBytes` (default 5 MiB when absent).
 - Page `properties` can be keyed by property **name or id**. Sitecatch always keys by **id**, so renaming a property doesn't break a preset ([ADR 0006](./decisions/0006-map-properties-by-id.md)).
 - Search returns only objects the token can see. For an internal connection, an empty result almost always means nothing has been shared yet; for a personal access token, it usually means the wrong workspace (see [setup-guide.md](./setup-guide.md#cant-see-your-database)).
-- Duplicate detection filters `POST …/query` on the dedupe property by its type: `{"property": id, "url": {"equals": …}}` for `url` properties (`rich_text` / `title` use the same shape with their own key), OR-ing the normalized and the raw URL. The `url` filter's exact-match behavior is still to be verified against a real workspace.
+- Duplicate detection filters `POST …/query` on the dedupe property by its type: `{"property": id, "url": {"equals": …}}` for `url` properties (`rich_text` / `title` use the same shape with their own key), OR-ing the normalized and the raw URL. The `url` filter's exact match was verified against a real workspace (manual E2E, 2026-10-18), including a `?utm_source=…` variant.
 
 ## File upload flow (screenshots)
 

@@ -62,9 +62,25 @@ Run with a real Notion workspace. This doubles as the setup test: capture the se
 
 - [ ] `pnpm build:chrome`, load `.output/chrome-mv3` unpacked (`chrome://extensions` → Developer mode → Load unpacked). Setup + one save with screenshot works.
 
-**Still unverified against real browsers / Notion** (check explicitly)
+## Manual E2E results
 
-- [ ] Duplicate query with a `url` property filter (`{"url": {"equals": …}}`) matches the saved page.
-- [ ] Old links to `notion.so/profile/integrations` redirect to the Developer portal (`app.notion.com/developers/connections`), which the wizard and error messages now link to.
-- [ ] **Open in Notion** (`target="_blank"` link in the popup) opens a new tab in Firefox and Chrome.
-- [ ] `activeTab` + `tabs.captureVisibleTab` work from the Firefox MV3 popup (fallback: optional `<all_urls>` at capture time).
+### 2026-10-18 (v0.1.0): Firefox, personal access token, Free-plan workspace
+
+Verified:
+
+- Setup wizard with a PAT: workspace name shown, databases listed without any sharing, api.notion.com host permission granted.
+- Creating a preset; its **Ready** status in the presets list.
+- Saving from the popup: `activeTab` + `tabs.captureVisibleTab` work from the Firefox MV3 popup (no `<all_urls>` fallback needed) and the thumbnail shows.
+- In Notion: title, description, `multi_select` ask fields, favicon page icon and the screenshot body image all land correctly.
+- Success view with **Open in Notion**.
+- Duplicate detection against real Notion: the `url` property filter (`{"url": {"equals": …}}`) matches the saved page, also for a `?utm_source=…` variant. The banner shows "Already in Websites … and 1 more page with this URL" with **Update existing** / **Save as duplicate** / **Open existing**.
+
+Not verified yet (check on the next run):
+
+- [ ] Chrome smoke test.
+- [ ] Old links to `notion.so/profile/integrations` redirect to the Developer portal (`app.notion.com/developers/connections`), which the wizard and error messages link to.
+- [ ] Internal connection path (create, share, unshare).
+- [ ] Restricted pages, closing the popup mid-save, and preset import/export (not explicitly reported).
+- [ ] Setup screenshots setup-1…13 captured into `public/setup/` (see [setup-guide.md](./setup-guide.md#screenshots-to-capture)).
+
+Known issue found: in the popup, the favicon badge overlaps the top-left corner of the screenshot thumbnail ([roadmap.md](./roadmap.md#known-issues)).

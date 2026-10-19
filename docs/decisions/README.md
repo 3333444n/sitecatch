@@ -11,5 +11,5 @@ Numbered ADRs: `NNNN-short-title.md`, with Context → Decision → Consequences
 | [0005](./0005-presets-in-storage-sync.md) | Presets in storage.sync, one item per preset | Accepted |
 | [0006](./0006-map-properties-by-id.md) | Map Notion properties by id | Accepted |
 | [0007](./0007-screenshot-jpeg-file-upload.md) | Screenshot as JPEG via the File Upload API | Accepted |
-| [0008](./0008-agent-worktree-workflow.md) | Agent worktree orchestration workflow | Accepted |
+| [0008](./0008-agent-worktree-workflow.md) | Agent worktree orchestration workflow | Accepted (updated 2026-10-18: PRs on GitHub) |
 | [0009](./0009-personal-access-token-default.md) | Personal access token as the default | Accepted |

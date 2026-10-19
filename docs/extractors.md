@@ -34,7 +34,7 @@ Allowed property types per output kind come from one table, `VALUE_KIND_TARGETS`
 ## Adding an extractor
 
 1. **Id.** Add the new id to the `ExtractorId` union in `src/lib/extract/types.ts`. This is a **contract file**: ask the orchestrator.
-2. **Raw data.** If the probe doesn't collect what you need yet, extend `RawPageData` (also a contract change) and the probe in `src/lib/capture/`. Keep it serializable and cheap. The probe runs on every capture.
+2. **Raw data.** If the probe doesn't collect what you need yet, extend `RawPageData` (also a contract change) and the probe in `src/lib/extract/probe.ts` (called from `src/lib/capture/capture.ts`). Keep it serializable and cheap. The probe runs on every capture.
 3. **Implement** an `ExtractorDef` in `src/lib/extract/extractors/<id>.ts`:
    ```ts
    export const myExtractor = defineExtractor({

@@ -2,6 +2,8 @@
 
 These docs are the **source of truth** for Sitecatch. Code follows the docs, and a change in behavior updates the docs in the same branch. If the code and the docs disagree, raise it.
 
+**Status:** v0.1.0 (2026-10-18), install from source, manually tested end to end in Firefox. Repository: <https://github.com/3333444n/sitecatch>. What's verified and what's next: [testing.md](./testing.md#manual-e2e-results), [roadmap.md](./roadmap.md#next).
+
 ## For users
 
 | Doc | Contents |
@@ -18,8 +20,8 @@ These docs are the **source of truth** for Sitecatch. Code follows the docs, and
 | [preset-model.md](./preset-model.md) | Preset/mapping types, value sources, compatibility matrix, validation, sync, import/export, examples |
 | [extractors.md](./extractors.md) | Each extractor's sources and output, adding a new extractor |
 | [notion-api.md](./notion-api.md) | API version, data sources, endpoints, file upload, property shapes, rate limits, error mapping |
-| [testing.md](./testing.md) | Commands, unit test strategy, manual E2E checklist |
-| [roadmap.md](./roadmap.md) | v0 scope and later plans |
+| [testing.md](./testing.md) | Commands, unit test strategy, manual E2E checklist and latest results |
+| [roadmap.md](./roadmap.md) | v0.1.0 scope, next items and known issues, later plans |
 | [decisions/](./decisions/README.md) | Architecture decision records (ADRs) |
 
 Start with [AGENTS.md](../AGENTS.md) for commands, workflow and code conventions. Setup screenshots are marked `<!-- SCREENSHOT: setup-N -->` and stored once, as `public/setup/setup-N.png` (shown in the setup wizard and linked from the docs as `../public/setup/setup-N.png`). See the capture checklist in [setup-guide.md](./setup-guide.md#screenshots-to-capture).

@@ -41,7 +41,7 @@ flowchart LR
 | Popup | `src/entrypoints/popup/` | Preset picker, capture form, duplicate banner, save status. Short-lived: closes whenever the user clicks away. |
 | Options page | `src/entrypoints/options/` | Setup wizard (opens on install), presets list/editor, settings, import/export, help. |
 | Background | `src/entrypoints/background.ts`, `src/background/` | Message `router.ts` dispatches to one handler per request type (`handlers/`). `save-pipeline.ts` runs saves. It owns the token, all Notion calls, capture and storage writes for jobs. |
-| In-page probe | `src/lib/capture/` | A function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
+| In-page probe | `src/lib/extract/probe.ts` | A self-contained function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
 | Notion client | `src/lib/notion/` | Plain `fetch`, `Notion-Version: 2026-03-11`, rate-limit queue, retries, multipart upload, error mapping. See [notion-api.md](./notion-api.md). |
 | Extractors | `src/lib/extract/` | Registry of pure `ExtractorDef.extract(raw, ctx)` functions (`needsPage: false` ones run even when the page can't be probed). `compat-table.ts` holds the single extractor-output → property-type table. See [extractors.md](./extractors.md). |
 | Capture | `src/lib/capture/` | Restricted-URL detection, screenshot (`tabs.captureVisibleTab`, JPEG, downscale). |
@@ -191,7 +191,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 - Register listeners synchronously at the top level of `defineBackground` (router, `onInstalled`) so they exist when the browser wakes the background up for an event.
 - **Router sender rules** (`src/background/router.ts`, `isTrustedSender`): one `runtime.onMessage` listener that replies with `sendResponse` + `return true` (WXT's fakeBrowser only delivers replies that way). It ignores anything that isn't `isRequest()`, and anything not sent by our own extension pages: `sender.id` must equal `runtime.id`, and `sender.url` (when present) must be inside the extension origin; a sender with a `tab` but no extension URL (a content script) is ignored. Handler throws become `err(toAppError(…))`.
 - **Service-worker limits (Chrome).** No DOM is available. Screenshot downscaling must use `OffscreenCanvas` / `createImageBitmap`, which work in both browsers' backgrounds.
-- `tabs.captureVisibleTab` relies on the `activeTab` grant that a toolbar click gives. Behavior in the Firefox MV3 popup is still an open item to verify. The fallback is to request `<all_urls>` as an optional permission at capture time ([roadmap.md](./roadmap.md)).
+- `tabs.captureVisibleTab` relies on the `activeTab` grant that a toolbar click gives. Verified in the Firefox MV3 popup (manual E2E, 2026-10-18), so no broader host permission is needed. Chrome is not yet smoke-tested ([testing.md](./testing.md#manual-e2e-checklist)).
 - `browser.permissions.request` must be called directly from a user click handler (the "Grant access" button).
 - On install, `runtime.onInstalled` with `reason === 'install'` opens the options page (setup wizard).
 - Firefox needs ≥ 140 (desktop) and ≥ 142 (Android) for `data_collection_permissions`. See [permissions-privacy.md](./permissions-privacy.md).

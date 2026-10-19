@@ -20,3 +20,7 @@ Sitecatch is built mostly by AI coding agents running in parallel. Parallel agen
 - Parallel work without conflicts. Interfaces are fixed early.
 - Contract changes go through one place, which can slow an agent down. The trade-off is intentional.
 - Rules live in [AGENTS.md](../../AGENTS.md) and [CLAUDE.md](../../CLAUDE.md), so human contributors follow the same flow (branches + PRs).
+
+## Update (2026-10-18)
+
+The public repository now exists: <https://github.com/3333444n/sitecatch>. Phases A–D are done (v0.1.0). The orchestrator no longer merges into `main` locally: each feature branch (still one worktree per task) is pushed and opened as a **PR on GitHub** for the maintainer to review and merge. `pnpm check` must be green before the PR.

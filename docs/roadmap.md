@@ -1,14 +1,26 @@
 # Roadmap
 
-## v0 (current)
+## v0.1.0 (released 2026-10-18)
 
-- Firefox-first MV3 extension (Chrome build also works). Load from source.
+Code: <https://github.com/3333444n/sitecatch>. Install from source; store distribution is out of scope for now.
+
+- Firefox-first MV3 extension, plus a Chrome build (not yet smoke-tested).
 - Guided setup wizard: **personal access token** (default, no per-database sharing) or **internal connection** token, api.notion.com access, sharing databases (connections only), database list with "Can't see your database?" help.
 - Presets: target data source, per-property sources (extractor with fallbacks / ask in popup / static), screenshot → files property / cover / body image, cover from og:image, favicon icon, duplicate detection by normalized URL.
 - Extractors: screenshot, title, ogTitle, url, canonicalUrl, domain, metaDescription, ogDescription, favicon, ogImage, selection, fonts, dateSaved.
 - Popup: editable pre-filled form, duplicate banner (update / duplicate / open), background save that survives popup close, success with **Open in Notion**, actionable errors, restricted-page fallback.
 - Presets synced via `storage.sync`. JSON import/export.
-- Open items to verify during v0 (see the [manual E2E checklist](./testing.md#manual-e2e-checklist)): `activeTab` + `captureVisibleTab` in the Firefox MV3 popup (fallback: optional `<all_urls>` at capture time); the `url` property filter used for duplicate detection; **Open in Notion** from the popup. Final gecko id before the first signed build (it can't change after AMO publication).
+- Manually tested end to end in Firefox with a personal access token on a Free-plan workspace (2026-10-18). Verified and still-open items: [testing.md](./testing.md#manual-e2e-results).
+
+## Next
+
+- Finish the manual E2E: Chrome smoke test, internal connection path, restricted pages, popup closed mid-save, import/export, the old `notion.so/profile/integrations` redirect.
+- Capture the setup screenshots setup-1…13 into `public/setup/` ([checklist](./setup-guide.md#screenshots-to-capture)). Until then the wizard shows "Screenshot coming soon".
+- Finalize the gecko id (`sitecatch@sitecatch.app` in `wxt.config.ts` is unconfirmed) before the first signed AMO build; it can't change after publication.
+
+### Known issues
+
+- Popup: the favicon badge overlaps the top-left corner of the screenshot thumbnail.
 
 ## Later
 

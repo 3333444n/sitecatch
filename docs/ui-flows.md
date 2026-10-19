@@ -49,7 +49,7 @@ If there are no presets yet: "Create your first preset" → opens Options → Pr
 
 ### Duplicate banner
 
-Shown above the form when `dup/check` returns matches: "Already saved in *Resources*: '<title>', edited <relative time>."
+Shown above the form when `dup/check` returns matches: "Already in *Resources*: **<title>** (saved <relative time>)."
 
 | Button | Effect |
 | --- | --- |
@@ -57,7 +57,7 @@ Shown above the form when `dup/check` returns matches: "Already saved in *Resour
 | **Save as duplicate** | `save/start` with `mode: {kind:'duplicate'}`. Creates a new page. |
 | **Open existing** | Opens the existing page's Notion URL in a new tab. Saves nothing. |
 
-With several matches, the banner shows the most recently edited one and a count. The footer **Save** button becomes **Save as duplicate**.
+With several matches, the banner shows the most recently edited one and adds "and N more page(s) with this URL". The footer **Save** button becomes **Save as duplicate**.
 
 ### Saving
 
@@ -100,7 +100,7 @@ A full tab (`open_in_tab`), opened automatically on install (`runtime.onInstalle
 | `#/presets/new` | Pick a database, then the editor for a new (unsaved) preset. |
 | `#/presets/:id` | Preset editor. |
 | `#/settings` | Capture settings, account, import/export, sync note, recent saves. |
-| `#/help` | Short FAQ linking to these docs (`DOCS_BASE_URL` in `lib/constants.ts`, placeholder until the GitHub repo exists). |
+| `#/help` | Short FAQ linking to these docs (`DOCS_BASE_URL` in `lib/constants.ts`, pointing at `https://github.com/3333444n/sitecatch/blob/main/docs/`). |
 
 ### Setup wizard
 
