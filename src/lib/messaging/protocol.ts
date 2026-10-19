@@ -13,6 +13,7 @@ import type { AppError, Result } from '@/lib/errors';
 import type { CaptureResult } from '@/lib/extract/types';
 import type { DataSourceSchema, DataSourceSummary, DuplicateMatch } from '@/lib/notion/types';
 import type { FormValues } from '@/lib/presets/types';
+import type { TokenKind } from '@/lib/storage/items';
 
 /** How a save should treat existing pages. */
 export type SaveMode =
@@ -45,7 +46,7 @@ export type NoParams = object;
 export interface RequestMap {
   /** Validate a pasted token (GET /v1/users/me) and store it on success. */
   'auth/validate': {
-    params: { token: string };
+    params: { token: string; tokenKind: TokenKind };
     response: {
       botName: string;
       workspaceName: string | null;
@@ -58,6 +59,7 @@ export interface RequestMap {
     params: NoParams;
     response: {
       hasToken: boolean;
+      tokenKind?: TokenKind;
       hostPermission: boolean;
       workspaceName?: string;
       /** From the last successful validation, when known. */

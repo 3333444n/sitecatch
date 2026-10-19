@@ -11,9 +11,17 @@ import type { DataSourceSchema } from '@/lib/notion/types';
 import type { JobState } from '@/lib/messaging/protocol';
 import type { Preset } from '@/lib/presets/types';
 
+/**
+ * How the user authenticated with Notion. Both are sent as a Bearer token.
+ * - 'personal': personal access token — acts as the user, no per-database sharing needed (default).
+ * - 'connection': internal connection (integration) token — only sees databases shared via ••• → Connections.
+ */
+export type TokenKind = 'personal' | 'connection';
+
 export interface AuthState {
-  /** Notion internal integration secret. Never log, never send anywhere but api.notion.com. */
+  /** Notion API token. Never log, never send anywhere but api.notion.com. */
   token: string;
+  tokenKind: TokenKind;
   botName: string;
   workspaceName: string | null;
   /**
