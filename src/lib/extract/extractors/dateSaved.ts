@@ -5,6 +5,7 @@ export const dateSaved = defineExtractor({
   label: 'Date saved',
   description: 'The date and time you saved the page.',
   output: 'date',
+  needsPage: false,
   extract: (_raw, ctx) => {
     const time = ctx.now.getTime();
     return Number.isNaN(time) ? null : { kind: 'date', value: ctx.now.toISOString() };

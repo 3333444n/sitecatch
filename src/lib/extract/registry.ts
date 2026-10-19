@@ -38,9 +38,6 @@ const EXTRACTORS: Readonly<Record<ExtractorId, ExtractorDef>> = {
   dateSaved,
 };
 
-/** Extractors that only need the `ExtractContext`, not page data. */
-const CONTEXT_ONLY: ReadonlySet<ExtractorId> = new Set<ExtractorId>(['screenshot', 'dateSaved']);
-
 /** Empty page data used when no probe result is available. */
 const EMPTY_RAW: RawPageData = {
   title: '',
@@ -75,7 +72,7 @@ export interface ExtractorRunResult {
 /**
  * Runs every (selected) extractor. Never throws: an extractor that throws is
  * skipped and reported as a warning. With `raw === null` (page couldn't be
- * probed) only context-only extractors (screenshot, dateSaved) run.
+ * probed) only extractors with `needsPage: false` (screenshot, dateSaved) run.
  */
 export function runExtractors(
   raw: RawPageData | null,
@@ -88,7 +85,7 @@ export function runExtractors(
 
   for (const def of listExtractors()) {
     if (only !== null && !only.has(def.id)) continue;
-    if (raw === null && !CONTEXT_ONLY.has(def.id)) continue;
+    if (raw === null && def.needsPage !== false) continue;
     try {
       const value = def.extract(raw ?? EMPTY_RAW, ctx);
       if (value !== null) values[def.id] = value;

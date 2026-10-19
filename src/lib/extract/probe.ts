@@ -19,8 +19,7 @@ export const WAIT_FOR_READY_MAX_MS = 5_000;
 /**
  * Collects serializable page data. Self-contained (see file header).
  *
- * Links additionally carry `sizes` / `type` when present (extra fields beyond
- * the `RawPageData` contract, used by the favicon extractor when available).
+ * Links carry `sizes` / `type` when present (used by the favicon extractor).
  */
 export function pageProbe(): RawPageData {
   const SELECTION_LIMIT = 10000;
@@ -53,7 +52,7 @@ export function pageProbe(): RawPageData {
     }
   }
 
-  const links: { rel: string; href: string; sizes?: string; type?: string }[] = [];
+  const links: RawPageData['links'] = [];
   const linkEls = document.querySelectorAll('link[rel][href]');
   for (let i = 0; i < linkEls.length; i++) {
     const el = linkEls[i];
@@ -62,7 +61,7 @@ export function pageProbe(): RawPageData {
     if (LINK_RELS.indexOf(rel) === -1) continue;
     const href = toAbsolute(el.getAttribute('href'));
     if (href === null) continue;
-    const entry: { rel: string; href: string; sizes?: string; type?: string } = { rel, href };
+    const entry: RawPageData['links'][number] = { rel, href };
     const sizes = el.getAttribute('sizes');
     if (sizes !== null && sizes.trim() !== '') entry.sizes = sizes.trim().toLowerCase();
     const type = el.getAttribute('type');

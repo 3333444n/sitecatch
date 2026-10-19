@@ -2,8 +2,7 @@ import type { ImageValue, RawPageData } from '../types';
 import { parseUrl, toHttpUrl } from '../util';
 import { defineExtractor } from './define';
 
-/** A probed link; the probe may add `sizes`/`type` beyond the contract shape. */
-type ProbedLink = RawPageData['links'][number] & { sizes?: unknown; type?: unknown };
+type ProbedLink = RawPageData['links'][number];
 
 interface Candidate {
   url: string;
@@ -15,8 +14,8 @@ interface Candidate {
 const ICON_RELS = new Set(['icon', 'shortcut icon', 'apple-touch-icon', 'apple-touch-icon-precomposed']);
 
 /** Largest dimension declared in `sizes` ("16x16 32x32" → 32, "any" → 512). */
-function declaredSize(sizes: unknown): number | undefined {
-  if (typeof sizes !== 'string') return undefined;
+function declaredSize(sizes: string | undefined): number | undefined {
+  if (sizes === undefined) return undefined;
   let best: number | undefined;
   for (const token of sizes.toLowerCase().split(/\s+/)) {
     if (token === 'any') return 512;
@@ -38,7 +37,7 @@ function sizeFromHref(href: string): number | undefined {
 }
 
 function mimeOf(link: ProbedLink, url: string): string | undefined {
-  if (typeof link.type === 'string' && link.type.startsWith('image/')) return link.type;
+  if (link.type?.startsWith('image/')) return link.type;
   const path = (parseUrl(url)?.pathname ?? '').toLowerCase();
   if (path.endsWith('.png')) return 'image/png';
   if (path.endsWith('.svg')) return 'image/svg+xml';
@@ -68,7 +67,7 @@ function candidateOf(link: ProbedLink, base: string): Candidate | null {
 
 /** Picks the best icon URL for the page, falling back to `/favicon.ico` at the origin. */
 export function pickFavicon(raw: RawPageData): ImageValue | null {
-  const candidates = (raw.links as ProbedLink[])
+  const candidates = raw.links
     .map((link) => candidateOf(link, raw.url))
     .filter((c): c is Candidate => c !== null);
 

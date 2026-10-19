@@ -75,8 +75,11 @@ export interface RawPageData {
    * 'og:title', 'og:image', 'twitter:image'). First occurrence wins.
    */
   meta: Record<string, string>;
-  /** <link> elements with rel + absolute href (icon, apple-touch-icon, canonical…). */
-  links: { rel: string; href: string }[];
+  /**
+   * <link> elements with rel + absolute href (icon, apple-touch-icon, canonical…).
+   * `sizes` / `type` are lowercased and present only when the element has them.
+   */
+  links: { rel: string; href: string; sizes?: string; type?: string }[];
   /** window.getSelection() as text ('' when none). */
   selection: string;
   /** Computed primary font family of body / first h1 / first h2. */
@@ -102,6 +105,12 @@ export interface ExtractorDef {
   output: ValueKind;
   /** Notion property types this extractor may be mapped to. */
   compatible: readonly NotionPropertyType[];
+  /**
+   * Whether the extractor reads `RawPageData`. Default true. Extractors with
+   * `false` (screenshot, dateSaved) only use the `ExtractContext` and still run
+   * when the page couldn't be probed.
+   */
+  needsPage?: boolean;
   /** Pure function. Returns null when the page has no such value. */
   extract(raw: RawPageData, ctx: ExtractContext): ExtractedValue | null;
 }
@@ -113,7 +122,11 @@ export interface CaptureResult {
   capturedAt: string;
   url: string;
   title: string;
-  /** True when the page couldn't be scripted/captured; only url/title/dateSaved are available. */
+  /**
+   * True when the page couldn't be scripted/captured. `values` then holds only
+   * what's known without page access: url, title, domain and dateSaved (each
+   * may be absent, e.g. when the tab has no usable URL).
+   */
   restricted: boolean;
   /** User-facing reason, e.g. "Firefox doesn't allow extensions on add-on store pages." */
   restrictedReason?: string;
