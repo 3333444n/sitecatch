@@ -8,7 +8,7 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 ![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
-> **Status:** v0.1.0, early. Store listings are coming. For now, install from source.
+> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet, so install from source. Source and issues: <https://github.com/3333444n/sitecatch>.
 
 ## Features
 
@@ -35,20 +35,22 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 | Highlights | Planned | Yes | No | Yes |
 | Firefox | Primary target | Yes | Add-on removed from AMO (2026) | Beta only |
 
-"—" means not verified. All of these are useful tools, and each has strengths. Sitecatch's angle is open source, the official API, minimal permissions and Firefox first. Based on public information as of October 2026. Corrections are welcome via an issue.
+"—" means not verified. All of these are useful tools, and each has strengths. Sitecatch's angle is open source, the official API, minimal permissions and Firefox first. Based on public information as of October 2026. Corrections are welcome via an [issue](https://github.com/3333444n/sitecatch/issues).
 
 ## Install (from source)
 
 Requirements: Node 24 and pnpm 10.
 
 ```sh
-pnpm i
+git clone https://github.com/3333444n/sitecatch.git
+cd sitecatch
+pnpm install
 pnpm build:firefox
 ```
 
 **Firefox:** open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → select `.output/firefox-mv3/manifest.json`. Temporary add-ons are removed when Firefox restarts. For development, `pnpm dev:firefox` builds, launches a Firefox window with Sitecatch loaded, and reloads on changes.
 
-**Chrome:** `pnpm build:chrome`, then `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`.
+**Chrome** (not smoke-tested yet): `pnpm build:chrome`, then `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`.
 
 Requires Firefox 140+ (desktop) or a current Chrome.
 
@@ -82,7 +84,7 @@ Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md
 | `pnpm build:firefox` / `pnpm build:chrome` | Production build |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:ext` | Types, ESLint, web-ext lint |
-| `pnpm check` | All of the above. Must pass before merging. |
+| `pnpm check` | All of the above. Must pass before opening a PR. |
 | `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips in `.output/` |
 
 Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
