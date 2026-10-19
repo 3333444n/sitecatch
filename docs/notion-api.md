@@ -70,7 +70,7 @@ sequenceDiagram
 These facts shape the design:
 
 - **Upload once, attach many times.** One page create can use the same `file_upload` id for a `files` property, the page `cover` and an `image` block. Sitecatch uploads the screenshot at most once per save.
-- **Size limits.** A single-part send accepts up to 20 MB. In **Free** workspaces each file is limited to **5 MiB** (paid plans: 5 GiB). Sitecatch downscales and re-encodes the JPEG to stay under about 4.5 MiB, so it works on every plan. If the file still doesn't fit, the save fails with `upload-too-large`.
+- **Size limits.** A single-part send accepts up to 20 MB. In **Free** workspaces each file is limited to **5 MiB** (paid plans: 5 GiB). Sitecatch downscales and re-encodes the JPEG to stay under about 4.5 MiB, so it works on every plan. The save pipeline recompresses to the workspace's own limit (`maxFileUploadBytes` from `GET /v1/users/me`, default 5 MiB). If the file still doesn't fit, the page is saved without the screenshot.
 - **1-hour expiry.** An upload that isn't attached within **1 hour** expires: `expiry_time` passes and the status becomes `expired`. Sitecatch uploads right before it creates the page, so this matters only if a save stalls. Once the file is attached, `expiry_time` is cleared and the file is permanent. The API offers no way to delete an upload.
 - The send endpoint expects `multipart/form-data`. With `fetch` + `FormData`, **don't set `Content-Type` yourself**, so the browser adds the boundary.
 - Filenames (with extension) are limited to 900 bytes.
@@ -131,7 +131,8 @@ Sitecatch's client:
 2. **429 / 529.** Waits `Retry-After` seconds, then retries the same request a few times at most. If the header is missing, it backs off exponentially with jitter. It doesn't retry a 429 whose `additional_data.rate_limit_reason` is `"public_api_request_blocked"`. When retries run out, the error is `rate-limited`.
 3. **500 / 502 / 503 / 504 and network errors.** Retries **only idempotent requests**: `GET`, plus `POST /v1/search` and `POST …/query`, which only read.
 4. **Never blindly retries page creation** (`POST /v1/pages`) or any other write. A create that timed out or returned 5xx may have succeeded, and retrying it would make a duplicate page. The job ends with an error instead. The next attempt runs the duplicate check again, so if the page was saved after all, the user sees "Update existing / Save as duplicate / Open existing".
-   - A 503 that includes `additional_data.committed_resource_id` means the write was saved. The client can fetch that page and report success instead of an error.
+   - An error response to `POST /v1/pages` that includes `additional_data.committed_resource_id` means the write was saved. The client reports success with that id and a URL built from it (`https://www.notion.so/<id without dashes>`).
+   - Otherwise the save pipeline re-runs the duplicate query itself before giving up (see [architecture.md](./architecture.md#save-pipeline-background-survives-popup-close)).
 5. Doesn't retry any other 4xx; the request has to be fixed instead.
 
 ## Error → user message
@@ -150,7 +151,7 @@ Notion errors are mapped to `AppError` (`src/lib/errors.ts`). Each message says 
 | 409 `conflict_error` | `network` | `retry` | "Notion couldn't save right now. Try again." |
 | 429 / 529 after retries | `rate-limited` | `retry` | "Notion is busy. Wait a minute and try again." |
 | 5xx, timeout, offline | `network` | `retry` | "Couldn't reach Notion. Check your connection and try again." After a failed create: "It may have been saved. Reopen Sitecatch to check." |
-| Screenshot over the limit after downscaling | `upload-too-large` | — | "The screenshot is too large for Notion. To save without it, turn off screenshots in the preset." |
+| Screenshot over the limit after downscaling | `upload-too-large` | — | Not a save failure: the background recompresses to `maxFileUploadBytes`, and if it still doesn't fit, saves the page without the screenshot (logged warning). |
 | Schema doesn't match the preset | `preset-invalid` | `edit-preset` | "Your database changed: <issue>. Fix the preset to continue." |
 | Anything else | `unknown` | `retry` | "Something went wrong. Try again." |
 
