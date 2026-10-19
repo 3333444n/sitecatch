@@ -14,7 +14,7 @@ export default defineConfig({
     permissions: ['activeTab', 'scripting', 'storage'],
     host_permissions: ['https://api.notion.com/*'],
     action: {
-      default_title: 'Save to Notion with Sitecatch',
+      default_title: 'Sitecatch',
     },
     ...(browser === 'firefox'
       ? {
@@ -26,6 +26,10 @@ export default defineConfig({
               data_collection_permissions: {
                 required: ['browsingActivity', 'websiteContent'],
               },
+            },
+            // data_collection_permissions needs Firefox for Android >= 142.
+            gecko_android: {
+              strict_min_version: '142.0',
             },
           },
         }
