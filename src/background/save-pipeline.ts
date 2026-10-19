@@ -137,19 +137,19 @@ async function uploadScreenshot(
   const shot = capture.values.screenshot;
   const dataUrl = shot?.kind === 'image' ? shot.dataUrl : undefined;
   if (!dataUrl) {
-    return { warnings: ['There was no screenshot to attach, so the page was saved without it.'] };
+    return { warnings: ['Saved without screenshot: there was no screenshot to attach.'] };
   }
   const limit = auth.maxFileUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   let blob = dataUrlToBlob(dataUrl);
   if (blob === null) {
-    return { warnings: ['The screenshot couldn’t be read, so the page was saved without it.'] };
+    return { warnings: ['Saved without screenshot: the screenshot couldn’t be read.'] };
   }
   if (blob.size > limit) {
     const compressed = await deps.compress(dataUrl, { maxBytes: limit });
     if (!compressed.ok) {
       return {
         warnings: [
-          'The screenshot is larger than your Notion workspace allows, so the page was saved without it.',
+          'Saved without screenshot: too large for your Notion workspace even after compression.',
         ],
       };
     }
@@ -160,7 +160,7 @@ async function uploadScreenshot(
   if (uploaded.ok) return { uploadId: uploaded.data, warnings: [] };
   if (uploaded.error.code === 'upload-too-large') {
     return {
-      warnings: ['Notion said the screenshot is too large, so the page was saved without it.'],
+      warnings: ['Saved without screenshot: Notion said it is too large.'],
     };
   }
   return { warnings: [], error: uploaded.error };
@@ -325,7 +325,11 @@ export async function runSavePipeline(
     }
     const { page, warnings } = outcome.data;
     if (warnings.length > 0) console.warn('[sitecatch] save finished with warnings:', warnings);
-    await deps.updateJob(jobId, { status: 'done', pageUrl: page.url });
+    await deps.updateJob(jobId, {
+      status: 'done',
+      pageUrl: page.url,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    });
     // The page is saved; history and last-used preset are best-effort.
     const preset = outcome.preset;
     if (preset) {

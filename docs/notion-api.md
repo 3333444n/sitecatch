@@ -151,7 +151,7 @@ Notion errors are mapped to `AppError` (`src/lib/errors.ts`). Each message says 
 | 409 `conflict_error` | `network` | `retry` | "Notion couldn't save right now. Try again." |
 | 429 / 529 after retries | `rate-limited` | `retry` | "Notion is busy. Wait a minute and try again." |
 | 5xx, timeout, offline | `network` | `retry` | "Couldn't reach Notion. Check your connection and try again." After a failed create: "It may have been saved. Reopen Sitecatch to check." |
-| Screenshot over the limit after downscaling | `upload-too-large` | — | Not a save failure: the background recompresses to `maxFileUploadBytes`, and if it still doesn't fit, saves the page without the screenshot (logged warning). |
+| Screenshot over the limit after downscaling | `upload-too-large` | — | Not a save failure: the background recompresses to `maxFileUploadBytes`, and if it still doesn't fit, saves the page without the screenshot (warning in `JobState.warnings`, shown in the popup). |
 | Schema doesn't match the preset | `preset-invalid` | `edit-preset` | "Your database changed: <issue>. Fix the preset to continue." |
 | Anything else | `unknown` | `retry` | "Something went wrong. Try again." |
 

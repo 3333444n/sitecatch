@@ -34,11 +34,13 @@ export function Saving({ status, slow }: SavingProps) {
 export interface SavedProps {
   dbName: string;
   pageUrl?: string;
+  /** Caveats from the background (`JobState.warnings`), shown as small notes. */
+  warnings?: string[];
   onSaveAnother: () => void;
   onClose: () => void;
 }
 
-export function Saved({ dbName, pageUrl, onSaveAnother, onClose }: SavedProps) {
+export function Saved({ dbName, pageUrl, warnings, onSaveAnother, onClose }: SavedProps) {
   return (
     <div class="popup-saved">
       <SuccessCard
@@ -47,6 +49,15 @@ export function Saved({ dbName, pageUrl, onSaveAnother, onClose }: SavedProps) {
         href={pageUrl}
         secondaryAction={{ label: 'Save with another preset', onClick: onSaveAnother }}
       />
+      {warnings && warnings.length > 0 && (
+        <ul class="popup-warnings" aria-label="Notes about this save">
+          {warnings.map((w) => (
+            <li key={w} class="popup-note">
+              {w}
+            </li>
+          ))}
+        </ul>
+      )}
       <Button variant="ghost" size="sm" fullWidth onClick={onClose}>
         Close
       </Button>

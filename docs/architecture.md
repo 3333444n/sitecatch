@@ -71,7 +71,7 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
 | `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | No dedupe property → `{ matches: [] }` without a request. Otherwise queries the dedupe property (by its live type: `url`, `rich_text` or `title`) for `urlVariants(url)` — the normalized URL **or** the raw one. |
 | `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
-| `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. |
+| `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. `done` carries `pageUrl` and optional `warnings`. |
 
 ## Data flow
 
@@ -141,7 +141,7 @@ flowchart TD
 ```
 
 - The upload happens **once**. Its `file_upload` id is reused for the `files` property (`preset.screenshot.filesPropertyId`, or a `files` mapping with the `screenshot` extractor), the cover and the image block.
-- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning is logged. `JobState` has no warnings field yet, so the warning isn't shown in the UI.
+- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning ("Saved without screenshot: …") is recorded. All save warnings (screenshot plus dropped/shortened-property warnings from `buildProperties`) are stored in `JobState.warnings` on the `done` job, and the popup's success view shows them as small notes.
 - **Update** replaces the mapped properties and the cover (and icon). It does **not** append another body image.
 - Only the dedupe property's URL is normalized (`normalizeUrl`), so a re-save of the same page with `?utm_…` or `#fragment` is detected. Other URL properties keep the captured value.
 - Errors become `AppError`s ([notion-api.md](./notion-api.md#error--user-message)). A create that failed with a network error, timeout or 5xx is **not** retried. If Notion's error carries `additional_data.committed_resource_id`, the client reports success with that page. Otherwise the pipeline waits briefly and re-runs the duplicate query: a match whose `last_edited_time` is at or after the job start (minus 2 minutes, since Notion rounds to the minute) and that wasn't already there before a `duplicate`-mode create counts as saved. If none is found, the job ends with `network` / `retry`.

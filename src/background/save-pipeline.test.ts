@@ -225,12 +225,12 @@ describe('runSavePipeline — screenshot', () => {
     const res = await runSavePipeline('job-1', request(), t.deps);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
-    expect(res.data.warnings.join(' ')).toMatch(/without it/);
+    expect(res.data.warnings.join(' ')).toMatch(/^Saved without screenshot/);
     const body = createBody(t.client);
     expect(body.cover).toBeUndefined();
     expect(body.children).toBeUndefined();
     expect(body.properties?.shots).toBeUndefined();
-    expect(t.jobs.at(-1)).toMatchObject({ status: 'done' });
+    expect(t.jobs.at(-1)).toMatchObject({ status: 'done', warnings: [expect.stringMatching(/^Saved without screenshot: Notion/)] });
     expect(console.warn).toHaveBeenCalled();
   });
 
@@ -240,6 +240,16 @@ describe('runSavePipeline — screenshot', () => {
     const res = await runSavePipeline('job-1', request(), t.deps);
     expect(res.ok).toBe(true);
     expect(t.client.uploadFile).not.toHaveBeenCalled();
+    expect(t.jobs.at(-1)?.warnings).toEqual([
+      'Saved without screenshot: too large for your Notion workspace even after compression.',
+    ]);
+  });
+
+  it('records dropped-property warnings from buildProperties on the job', async () => {
+    const t = setup();
+    const long = `https://example.com/${'a'.repeat(2100)}`;
+    await runSavePipeline('job-1', request({ values: { ...VALUES, 'p%3Aurl': { kind: 'text', value: long } } }), t.deps);
+    expect(t.jobs.at(-1)?.warnings).toEqual([expect.stringContaining('The link for “URL” is longer than Notion allows')]);
   });
 
   it('fails the job on other upload errors', async () => {

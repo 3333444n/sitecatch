@@ -62,7 +62,7 @@ type SaveState =
       startedAt: number;
       dbName: string;
     }
-  | { kind: 'done'; pageUrl?: string; dbName: string }
+  | { kind: 'done'; pageUrl?: string; dbName: string; warnings?: string[] }
   | { kind: 'error'; error: AppError; mode: SaveMode };
 
 async function activeTab(): Promise<TabInfo> {
@@ -126,7 +126,7 @@ export function App() {
     stopTracking.current = trackJob(
       jobId,
       (job) => {
-        if (job.status === 'done') setSave({ kind: 'done', pageUrl: job.pageUrl, dbName });
+        if (job.status === 'done') setSave({ kind: 'done', pageUrl: job.pageUrl, dbName, warnings: job.warnings });
         else if (job.status === 'error') setSave({ kind: 'error', error: job.error ?? LOST_JOB, mode });
         else {
           const status = job.status;
@@ -519,7 +519,7 @@ export function App() {
     return (
       <main class="sc-popup popup">
         {header}
-        <Saved dbName={save.dbName} pageUrl={save.pageUrl} onSaveAnother={resetAfterSave} onClose={closePopup} />
+        <Saved dbName={save.dbName} pageUrl={save.pageUrl} warnings={save.warnings} onSaveAnother={resetAfterSave} onClose={closePopup} />
       </main>
     );
   }

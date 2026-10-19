@@ -67,7 +67,7 @@ The popup remembers its most recent job in `session:popup:lastJob` (`{ jobId, pr
 
 ### Success
 
-"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab), **Save with another preset** (back to the form, duplicate check re-run) and **Close**. The popup doesn't close by itself. The entry is added to `local:history`. Reopening it on the same page shows the duplicate banner.
+"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab), **Save with another preset** (back to the form, duplicate check re-run) and **Close**. Save warnings (`JobState.warnings`, e.g. "Saved without screenshot: …" or a property that was shortened/skipped) appear under the card as small notes. The popup doesn't close by itself. The entry is added to `local:history`. Reopening it on the same page shows the duplicate banner.
 
 ### Error
 
