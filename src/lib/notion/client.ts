@@ -11,10 +11,12 @@ import type {
   DataSourceSummary,
   DuplicateMatch,
   NotionColor,
+  NotionCreatePageBody,
   NotionIcon,
   NotionPageRef,
   NotionPropertyType,
   PropertySchema,
+  NotionUpdatePageBody,
   SelectOption,
 } from './types';
 import { endpoints, MAX_PAGE_SIZE, NOTION_VERSION, SINGLE_PART_UPLOAD_MAX_BYTES } from './endpoints';
@@ -37,32 +39,6 @@ import {
   type RetryPolicy,
   type Sleep,
 } from './rate-limit';
-
-// ---------------------------------------------------------------------------
-// Request body types (built by src/lib/properties; kept loose on purpose)
-// ---------------------------------------------------------------------------
-
-/** A file reference usable as cover, icon, files-property item or image block. */
-export type NotionFileRef =
-  | { type: 'file_upload'; file_upload: { id: string } }
-  | { type: 'external'; external: { url: string } };
-
-export type NotionIconRequest = NotionFileRef | { type: 'emoji'; emoji: string };
-
-/** Body for POST /v1/pages and PATCH /v1/pages/{id}. Property values are keyed by property id or name. */
-export interface NotionPageBody {
-  properties?: Record<string, unknown>;
-  icon?: NotionIconRequest | null;
-  cover?: NotionFileRef | null;
-  /** Block objects appended on create (max 100). Ignored by PATCH. */
-  children?: unknown[];
-}
-
-export interface NotionCreatePageBody extends NotionPageBody {
-  parent: { type: 'data_source_id'; data_source_id: string };
-}
-
-export type NotionUpdatePageBody = Omit<NotionPageBody, 'children'>;
 
 export interface NotionMe {
   botName: string;

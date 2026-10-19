@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { WRITABLE_PROPERTY_TYPES } from '@/lib/notion/types';
+import { listExtractors } from '@/lib/extract/registry';
 import {
   compatibleExtractors,
   EXTRACTOR_IDS,
+  EXTRACTOR_OUTPUT,
   formValueKindFor,
   isCompatible,
   supportsAsk,
@@ -12,6 +14,15 @@ import {
 describe('compat matrix', () => {
   it('covers all 13 v0 extractors', () => {
     expect(EXTRACTOR_IDS).toHaveLength(13);
+  });
+
+  it('agrees with every ExtractorDef (output kind and compatible types)', () => {
+    for (const def of listExtractors()) {
+      expect(EXTRACTOR_OUTPUT[def.id]).toBe(def.output);
+      for (const t of WRITABLE_PROPERTY_TYPES) {
+        expect(isCompatible(def.id, t)).toBe(def.compatible.includes(t));
+      }
+    }
   });
 
   it('maps image extractors only to files', () => {

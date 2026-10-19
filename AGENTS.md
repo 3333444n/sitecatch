@@ -35,8 +35,9 @@ Toolchain: Node 24 (`.nvmrc`), pnpm 10.
 These define the shared interfaces between modules. **Change only via the orchestrator** — implement against them, don't edit them. If one is wrong or missing something, report it.
 
 - `src/lib/errors.ts` — `AppError`, `AppErrorCode`, `Result<T>`, `ok()`, `err()`
-- `src/lib/notion/types.ts` — normalized Notion types (property types, data source schema, page refs, duplicates)
+- `src/lib/notion/types.ts` — normalized Notion types (property types, data source schema, page refs, duplicates) and page request bodies (`NotionPropertyValue`, `PageExtras`, `NotionCreatePageBody`/`NotionUpdatePageBody`)
 - `src/lib/extract/types.ts` — extractor ids, `RawPageData`, `ExtractorDef`, `ExtractedValue`, `CaptureResult`
+- `src/lib/extract/compat-table.ts` — `VALUE_KIND_TARGETS`, the single extractor-output → property-type compatibility table
 - `src/lib/presets/types.ts` — `Preset`, `Mapping`, `ValueSource`, `FormValue(s)`, `PresetIssue`
 - `src/lib/messaging/protocol.ts` and `src/lib/messaging/client.ts` — request/response map, `Handlers`, `sendRequest()`
 - `src/lib/storage/items.ts` — all storage item definitions

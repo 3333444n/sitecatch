@@ -7,7 +7,14 @@
  * place of the name.
  */
 import type { CaptureResult } from '@/lib/extract/types';
-import type { DataSourceSchema, PropertySchema } from '@/lib/notion/types';
+import type {
+  DataSourceSchema,
+  NotionFileValue,
+  NotionPropertyValue,
+  NotionRichTextItem,
+  PageExtras,
+  PropertySchema,
+} from '@/lib/notion/types';
 import { isWritableType } from '@/lib/presets/compat';
 import { fileNameFromUrl } from '@/lib/presets/resolve';
 import type { FileRef, FormValue, FormValues, Preset } from '@/lib/presets/types';
@@ -23,56 +30,16 @@ import {
   URL_MAX,
 } from './truncate';
 
-export interface NotionRichTextItem {
-  type: 'text';
-  text: { content: string };
-}
-
-export type NotionFileValue =
-  | { type: 'file_upload'; file_upload: { id: string }; name: string }
-  | { type: 'external'; name: string; external: { url: string } };
-
-export interface NotionDateValue {
-  start: string;
-  end?: string;
-}
-
-/** Request JSON for one property value. */
-export type NotionPropertyValue =
-  | { title: NotionRichTextItem[] }
-  | { rich_text: NotionRichTextItem[] }
-  | { number: number }
-  | { checkbox: boolean }
-  | { select: { name: string } }
-  | { multi_select: { name: string }[] }
-  | { status: { name: string } }
-  | { date: NotionDateValue }
-  | { files: NotionFileValue[] }
-  | { url: string }
-  | { email: string }
-  | { phone_number: string };
-
-export type NotionFileObject =
-  | { type: 'external'; external: { url: string } }
-  | { type: 'file_upload'; file_upload: { id: string } };
-
-export interface NotionImageBlock {
-  object: 'block';
-  type: 'image';
-  image: { type: 'file_upload'; file_upload: { id: string } };
-}
-
-export interface PageExtras {
-  icon?: { type: 'external'; external: { url: string } };
-  cover?: NotionFileObject;
-  children?: NotionImageBlock[];
-}
-
 export interface BuildContext {
   /** Id of the completed file upload holding the screenshot, if any. */
   screenshotUploadId?: string;
   /** File name used for the screenshot in `files` properties. */
   screenshotName?: string;
+  /**
+   * UTC offset (minutes east of UTC) appended to date-times without one.
+   * Defaults to the local offset at that date (DST-aware). Injected for tests.
+   */
+  utcOffsetMinutes?: number;
 }
 
 export interface BuildResult {
@@ -82,6 +49,32 @@ export interface BuildResult {
 }
 
 export const DEFAULT_SCREENSHOT_NAME = 'screenshot.jpg';
+
+/** `YYYY-MM-DDTHH:mm[:ss[.sss]]` with no `Z`/`±HH:mm` suffix. */
+const LOCAL_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?$/;
+
+/** Formats minutes east of UTC as `±HH:mm` (e.g. 120 → `+02:00`, -330 → `-05:30`). */
+export function formatUtcOffset(minutesEast: number): string {
+  const sign = minutesEast < 0 ? '-' : '+';
+  const abs = Math.abs(Math.trunc(minutesEast));
+  const hh = String(Math.floor(abs / 60)).padStart(2, '0');
+  const mm = String(abs % 60).padStart(2, '0');
+  return `${sign}${hh}:${mm}`;
+}
+
+/**
+ * Notion treats a date-time without an offset as UTC, but the popup's date
+ * input emits local wall-clock time (`YYYY-MM-DDTHH:mm`). Appends the local
+ * UTC offset to such values; date-only strings and values that already carry
+ * an offset (or `Z`) are returned unchanged.
+ */
+export function withUtcOffset(value: string, offsetMinutes?: number): string {
+  if (!LOCAL_DATE_TIME.test(value)) return value;
+  // A string without offset parses as local time, so this is the offset in effect at that moment.
+  const local = new Date(value);
+  const minutes = offsetMinutes ?? (Number.isNaN(local.getTime()) ? 0 : -local.getTimezoneOffset());
+  return `${value}${formatUtcOffset(minutes)}`;
+}
 
 function richText(text: string, prop: PropertySchema, warnings: string[]): NotionRichTextItem[] {
   const { chunks, truncated } = chunkText(text);
@@ -202,8 +195,9 @@ function buildValue(
     }
     case 'date': {
       if (value.kind !== 'date' || value.value === null) return mismatch();
-      const start = value.value.start.trim();
-      const end = value.value.end?.trim();
+      const start = withUtcOffset(value.value.start.trim(), ctx.utcOffsetMinutes);
+      const rawEnd = value.value.end?.trim();
+      const end = rawEnd ? withUtcOffset(rawEnd, ctx.utcOffsetMinutes) : undefined;
       return { date: end ? { start, end } : { start } };
     }
     case 'files': {

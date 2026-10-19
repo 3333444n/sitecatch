@@ -16,6 +16,12 @@ export interface AuthState {
   token: string;
   botName: string;
   workspaceName: string | null;
+  /**
+   * Workspace single-file upload limit in bytes (`bot.workspace_limits`, e.g.
+   * 5 MiB on free plans), when Notion reports it. The save pipeline sizes
+   * screenshots to fit it.
+   */
+  maxFileUploadBytes?: number;
   /** ISO 8601. */
   validatedAt: string;
 }

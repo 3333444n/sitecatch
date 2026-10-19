@@ -46,12 +46,23 @@ export interface RequestMap {
   /** Validate a pasted token (GET /v1/users/me) and store it on success. */
   'auth/validate': {
     params: { token: string };
-    response: { botName: string; workspaceName: string | null };
+    response: {
+      botName: string;
+      workspaceName: string | null;
+      /** Workspace single-file upload limit (`bot.workspace_limits`), when Notion reports it. */
+      maxFileUploadBytes?: number;
+    };
   };
   /** Cheap status check used by popup/options on open. Never returns the token. */
   'auth/status': {
     params: NoParams;
-    response: { hasToken: boolean; hostPermission: boolean; workspaceName?: string };
+    response: {
+      hasToken: boolean;
+      hostPermission: boolean;
+      workspaceName?: string;
+      /** From the last successful validation, when known. */
+      maxFileUploadBytes?: number;
+    };
   };
   /** Forget the stored token. */
   'auth/clear': {

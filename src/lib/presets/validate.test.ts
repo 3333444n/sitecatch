@@ -60,12 +60,13 @@ describe('validatePreset', () => {
     expect(validatePreset(p, resourcesSchema)[0]?.kind).toBe('type-changed');
   });
 
-  it('isBlocking falls back to the kind for bare issues', () => {
-    const bare = (kind: PresetIssue['kind']): PresetIssue => ({ propertyId: 'x', kind, detail: '' });
-    expect(isBlocking(bare('missing'))).toBe(true);
-    expect(isBlocking(bare('type-changed'))).toBe(true);
-    expect(isBlocking(bare('renamed'))).toBe(false);
-    expect(isBlocking(bare('option-missing'))).toBe(false);
+  it('isBlocking reads the blocking flag', () => {
+    const issue = (blocking: boolean): PresetIssue => ({ propertyId: 'x', kind: 'option-missing', blocking, detail: '' });
+    expect(isBlocking(issue(true))).toBe(true);
+    expect(isBlocking(issue(false))).toBe(false);
+    const issues = validatePreset(preset, resourcesChangedSchema);
+    expect(issues.filter((i) => i.kind === 'renamed').every((i) => !i.blocking)).toBe(true);
+    expect(issues.filter((i) => i.kind === 'type-changed' || i.kind === 'missing').every((i) => i.blocking)).toBe(true);
     const status = validatePreset(preset, resourcesChangedSchema).find((i) => i.propertyId === 'status');
     expect(status && isBlocking(status)).toBe(true);
   });

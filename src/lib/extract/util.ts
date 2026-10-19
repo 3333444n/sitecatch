@@ -1,19 +1,5 @@
 /** Shared helpers for extractors (run in the extension, never injected). */
-import type { NotionPropertyType } from '@/lib/notion/types';
-import type { RawPageData, ValueKind } from './types';
-
-/**
- * Notion property types each extractor output kind may be mapped to.
- * (favicon / ogImage can additionally become the page icon / cover — that is
- * configured on the preset, not via property mappings.)
- */
-export const COMPATIBLE_TYPES: Readonly<Record<ValueKind, readonly NotionPropertyType[]>> = {
-  text: ['title', 'rich_text', 'select', 'multi_select'],
-  url: ['url', 'rich_text', 'title'],
-  list: ['multi_select', 'rich_text'],
-  date: ['date'],
-  image: ['files'],
-};
+import type { RawPageData } from './types';
 
 /** Trims and collapses all whitespace runs (incl. newlines) to single spaces. */
 export function cleanText(value: string | null | undefined): string {

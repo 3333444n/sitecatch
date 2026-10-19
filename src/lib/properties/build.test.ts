@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { resolveInitialValues } from '@/lib/presets/resolve';
 import { allResourcesMappings, makeCapture, makePreset, resourcesChangedSchema, resourcesSchema } from '@/lib/presets/testing';
 import type { FormValues, Mapping } from '@/lib/presets/types';
-import { buildPageExtras, buildProperties } from './build';
+import type { NotionCreatePageBody, NotionUpdatePageBody } from '@/lib/notion/types';
+import { buildPageExtras, buildProperties, formatUtcOffset, withUtcOffset } from './build';
 
 const preset = makePreset({ mappings: allResourcesMappings() });
 
@@ -189,5 +190,56 @@ describe('buildPageExtras', () => {
     c.values.favicon = { kind: 'image', url: 'data:image/png;base64,AAA' };
     const p = makePreset({ icon: 'favicon', cover: 'screenshot', screenshot: { filesPropertyId: null, bodyImage: true } });
     expect(buildPageExtras(p, c)).toEqual({});
+  });
+});
+
+describe('date offsets', () => {
+  it('formats UTC offsets', () => {
+    expect(formatUtcOffset(0)).toBe('+00:00');
+    expect(formatUtcOffset(120)).toBe('+02:00');
+    expect(formatUtcOffset(-330)).toBe('-05:30');
+    expect(formatUtcOffset(345)).toBe('+05:45');
+  });
+
+  it('appends the offset only to date-times without one', () => {
+    expect(withUtcOffset('2026-10-18T09:30', 120)).toBe('2026-10-18T09:30+02:00');
+    expect(withUtcOffset('2026-10-18T09:30:15', -300)).toBe('2026-10-18T09:30:15-05:00');
+    expect(withUtcOffset('2026-10-18', 120)).toBe('2026-10-18');
+    expect(withUtcOffset('2026-10-18T09:30:00.000Z', 120)).toBe('2026-10-18T09:30:00.000Z');
+    expect(withUtcOffset('2026-10-18T09:30+01:00', 120)).toBe('2026-10-18T09:30+01:00');
+  });
+
+  it('defaults to the local offset at that date', () => {
+    const expected = formatUtcOffset(-new Date('2026-01-15T10:00').getTimezoneOffset());
+    expect(withUtcOffset('2026-01-15T10:00')).toBe(`2026-01-15T10:00${expected}`);
+  });
+
+  it('buildProperties offsets date-time start and end', () => {
+    const { properties } = buildProperties(
+      preset,
+      values({ saved: { kind: 'date', value: { start: '2026-10-18T09:00', end: '2026-10-18T10:30' } } }),
+      resourcesSchema,
+      { utcOffsetMinutes: 120 },
+    );
+    expect(properties.saved).toEqual({
+      date: { start: '2026-10-18T09:00+02:00', end: '2026-10-18T10:30+02:00' },
+    });
+  });
+});
+
+describe('page body compatibility', () => {
+  it('plugs builder output into create/update page bodies without casts', () => {
+    const p = makePreset({ mappings: allResourcesMappings(), icon: 'favicon', cover: 'screenshot', screenshot: { filesPropertyId: null, bodyImage: true } });
+    const { properties } = buildProperties(p, values(), resourcesSchema, { screenshotUploadId: 'up-1' });
+    const extras = buildPageExtras(p, makeCapture(), 'up-1');
+    const create: NotionCreatePageBody = {
+      parent: { type: 'data_source_id', data_source_id: resourcesSchema.id },
+      properties,
+      ...extras,
+    };
+    const { children: _children, ...updateExtras } = extras;
+    const update: NotionUpdatePageBody = { properties, ...updateExtras };
+    expect(create.children).toHaveLength(1);
+    expect(update.properties).toBe(properties);
   });
 });
