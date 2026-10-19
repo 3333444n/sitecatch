@@ -267,10 +267,16 @@ describe('queryByUrl', () => {
 describe('createPage / updatePage', () => {
   const body = {
     parent: { type: 'data_source_id' as const, data_source_id: DS_ID },
-    properties: { title: { title: [{ text: { content: 'Example Domain' } }] } },
+    properties: { title: { title: [{ type: 'text' as const, text: { content: 'Example Domain' } }] } },
     cover: { type: 'file_upload' as const, file_upload: { id: uploadCreated.id } },
     icon: { type: 'external' as const, external: { url: 'https://example.com/favicon.ico' } },
-    children: [{ type: 'image', image: { type: 'file_upload', file_upload: { id: uploadCreated.id } } }],
+    children: [
+      {
+        object: 'block' as const,
+        type: 'image' as const,
+        image: { type: 'file_upload' as const, file_upload: { id: uploadCreated.id } },
+      },
+    ],
   };
 
   it('POSTs the body to /v1/pages and returns id + url', async () => {
