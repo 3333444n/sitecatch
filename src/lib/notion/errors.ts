@@ -99,9 +99,8 @@ export function mapHttpError(
   }
 
   if (status === 403 || code === 'restricted_resource') {
-    // No dedicated AppErrorCode for missing capabilities yet (contract change requested).
     return {
-      code: 'unknown',
+      code: 'missing-capability',
       message:
         'Your Notion integration isn’t allowed to do this. In notion.so/profile/integrations, open your integration → Capabilities and enable “Read content”, “Update content” and “Insert content”, then try again.',
       action: 'open-setup',

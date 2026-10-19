@@ -15,6 +15,11 @@ export type AppErrorCode =
   | 'invalid-token'
   /** The user has not granted access to https://api.notion.com/* (optional host permission). */
   | 'no-host-permission'
+  /**
+   * The integration lacks a capability for this operation (HTTP 403 /
+   * restricted_resource) — e.g. "Insert content" is disabled in its settings.
+   */
+  | 'missing-capability'
   /** Database/data source not found or not shared with the integration (HTTP 404 / object_not_found). */
   | 'db-not-shared'
   /** Notion rejected the request body (HTTP 400 validation_error) or local input is invalid. */
