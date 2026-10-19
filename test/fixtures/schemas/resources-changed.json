@@ -1,0 +1,31 @@
+{
+  "id": "ds-resources",
+  "name": "Resources",
+  "titlePropertyId": "title",
+  "properties": {
+    "title": { "id": "title", "name": "Title", "type": "title" },
+    "notes": { "id": "notes", "name": "Notes", "type": "rich_text" },
+    "rating": { "id": "rating", "name": "Rating", "type": "rich_text" },
+    "kind": {
+      "id": "kind",
+      "name": "Kind",
+      "type": "select",
+      "options": [{ "id": "o1", "name": "Article", "color": "blue" }]
+    },
+    "tags": {
+      "id": "tags",
+      "name": "Tags",
+      "type": "multi_select",
+      "options": [{ "id": "t1", "name": "design", "color": "pink" }]
+    },
+    "status": {
+      "id": "status",
+      "name": "Status",
+      "type": "status",
+      "options": [{ "id": "s1", "name": "Inbox", "color": "default" }]
+    },
+    "saved": { "id": "saved", "name": "Saved", "type": "date" },
+    "shots": { "id": "shots", "name": "Screenshots", "type": "rich_text" },
+    "fav": { "id": "fav", "name": "Favorite", "type": "formula" }
+  }
+}
