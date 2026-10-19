@@ -15,7 +15,7 @@ From `wxt.config.ts`:
 
 Sitecatch does **not** request `<all_urls>`, `tabs`, `cookies`, `history`, `webRequest`, or access to `notion.so`. It doesn't use your Notion browser session.
 
-Possible future change: if `activeTab` turns out not to be enough for screenshots in the Firefox MV3 popup, Sitecatch would ask for broader site access as an **optional** permission, only at the moment of capture and only after you agree. See [roadmap.md](./roadmap.md).
+`activeTab` is enough for screenshots from the Firefox MV3 popup (verified in the manual E2E, 2026-10-18), so Sitecatch needs no broader site access.
 
 ### What you see at install
 
