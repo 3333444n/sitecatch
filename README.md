@@ -4,11 +4,11 @@
 
 Sitecatch is an open-source browser extension, built for Firefox first, that saves the page you're on into the Notion database you choose. It captures the screenshot, title, description, URL, fonts and more, and you decide which property gets what. It uses the official Notion API with your own token. There is no account, no backend and no tracking.
 
-<!-- SCREENSHOT: hero — add a popup GIF at assets/hero.gif and uncomment:
+<!-- SCREENSHOT: hero — add a short popup GIF at assets/hero.gif (not shipped in the extension) and uncomment:
 ![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
-> **Status:** early development (v0). Store listings are coming. For now, install from source.
+> **Status:** v0.1.0, early. Store listings are coming. For now, install from source.
 
 ## Features
 
@@ -16,9 +16,10 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 - **Per-property value sources**: extracted from the page (with fallbacks, e.g. Open Graph title → page title), **asked in the popup**, or a **fixed value**.
 - **Screenshots**: into a files property, as the page cover, and/or as an image in the page body. Uploaded to Notion, no third-party hosting.
 - **Cover & icon** from the page's Open Graph image and favicon.
-- **Duplicate detection** by normalized URL: update the existing page, save a duplicate, or open the existing one.
-- **Editable form** before saving. The save keeps going in the background if you close the popup. When it's done you get **Open in Notion**.
-- **Guided setup wizard** with exact steps and troubleshooting.
+- **Duplicate detection** by normalized URL (tracking parameters and `#fragments` ignored): update the existing page, save a duplicate, or open the existing one.
+- **Editable form** before saving. The save keeps going in the background if you close the popup. When it's done you get **Open in Notion**, plus a note if anything was left out (e.g. a screenshot too large for your plan).
+- **Guided setup wizard** for a personal access token or an internal connection, with exact steps and troubleshooting.
+- Works on restricted pages (browser pages, stores, PDFs) with a URL/title fallback.
 - Presets **sync** through your browser, with JSON **import/export**.
 - Survives property **renames** (mapped by id) and warns when your database changes.
 
@@ -38,25 +39,29 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 
 ## Install (from source)
 
-Requirements: Node 24, pnpm 10.
+Requirements: Node 24 and pnpm 10.
 
 ```sh
 pnpm i
 pnpm build:firefox
 ```
 
-Then in Firefox open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → select `.output/firefox-mv3/manifest.json`. For Chrome, run `pnpm build:chrome` and load `.output/chrome-mv3` unpacked from `chrome://extensions` (Developer mode).
+**Firefox:** open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → select `.output/firefox-mv3/manifest.json`. Temporary add-ons are removed when Firefox restarts. For development, `pnpm dev:firefox` builds, launches a Firefox window with Sitecatch loaded, and reloads on changes.
 
-Listings on addons.mozilla.org and the Chrome Web Store are coming.
+**Chrome:** `pnpm build:chrome`, then `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`.
+
+Requires Firefox 140+ (desktop) or a current Chrome.
 
 ## Quick setup
 
-1. Create an internal connection named **Sitecatch** in Notion's Developer portal (Read, Update, Insert content).
-2. Copy its API token and paste it into the Sitecatch setup wizard.
-3. In Notion, open each database → **•••** → **Connections** → **Add connection** → Sitecatch.
-4. Create a preset and save your first page.
+The setup wizard opens after install. It offers two ways to connect:
 
-Full walkthrough: [docs/setup-guide.md](docs/setup-guide.md).
+1. **Personal access token (recommended).** In Notion's Developer portal → **Personal access tokens** → **New token** (name it `Sitecatch`) → copy it (it's shown only once). It acts as you, so every database you can open just works.
+2. **Internal connection.** For a narrower token: a Workspace Owner creates an internal connection with Read, Update and Insert content, copies its API token, then shares each database with it (database **•••** → **Connections** → **+ Add connection** → Sitecatch).
+
+Then allow access to api.notion.com when asked, paste the token, create a preset for a database, and save your first page.
+
+Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md).
 
 ## Permissions & privacy
 
@@ -67,7 +72,7 @@ Full walkthrough: [docs/setup-guide.md](docs/setup-guide.md).
 | `storage` | Your token and settings (this device), presets (synced) |
 | `https://api.notion.com/*` | The only server Sitecatch talks to |
 
-**Privacy:** your browser talks to api.notion.com and nothing else. The token stays on your device and is never synced or logged. Details: [docs/permissions-privacy.md](docs/permissions-privacy.md).
+**Privacy:** your browser talks to api.notion.com and nothing else. No account, analytics, telemetry or remote code. The token stays on this device (`storage.local`) and is never synced, exported or logged. Page data (URL, title, descriptions, screenshot…) is sent only when you save, plus the page URL for the duplicate check when the popup opens. Firefox shows this as the required "browsing activity" and "website content" data collection. Details: [docs/permissions-privacy.md](docs/permissions-privacy.md).
 
 ## Development
 
@@ -78,12 +83,13 @@ Full walkthrough: [docs/setup-guide.md](docs/setup-guide.md).
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:ext` | Types, ESLint, web-ext lint |
 | `pnpm check` | All of the above. Must pass before merging. |
+| `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips in `.output/` |
 
-Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) © Sitecatch contributors
 
 ---
 
