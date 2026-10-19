@@ -418,10 +418,8 @@ export function App() {
           return;
         }
         case 'open-setup':
-          void openOptions(OPTIONS_ROUTES.setup);
-          return;
         case 'reshare-db':
-          void openOptions(OPTIONS_ROUTES.help);
+          void openOptions(OPTIONS_ROUTES.setup);
           return;
         case 'edit-preset':
           void openOptions(preset ? OPTIONS_ROUTES.preset(preset.id) : OPTIONS_ROUTES.presets);

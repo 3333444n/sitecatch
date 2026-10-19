@@ -323,7 +323,7 @@ describe('saving', () => {
 
   const routing: [NonNullable<AppError['action']>, string, RegExp][] = [
     ['open-setup', 'Open setup', /#\/setup$/],
-    ['reshare-db', 'How to share', /#\/help$/],
+    ['reshare-db', 'How to share', /#\/setup$/],
     ['edit-preset', 'Edit preset', /#\/presets\/preset-1$/],
   ];
 
