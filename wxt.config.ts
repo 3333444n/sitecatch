@@ -20,7 +20,7 @@ export default defineConfig({
       ? {
           browser_specific_settings: {
             gecko: {
-              // Placeholder: finalize before the first signed AMO build (immutable afterwards).
+              // Permanent: v0.1.0 was signed on AMO (unlisted) under this id on 2026-10-18. Never change it.
               id: 'sitecatch@sitecatch.app',
               strict_min_version: '140.0',
               data_collection_permissions: {
