@@ -4,8 +4,8 @@
 
 Sitecatch is an open-source browser extension, built for Firefox first, that saves the page you're on into the Notion database you choose. It captures the screenshot, title, description, URL, fonts and more, and you decide which property gets what. It uses the official Notion API with your own token. There is no account, no backend and no tracking.
 
-<!-- SCREENSHOT: hero — add a popup GIF at docs/images/hero.gif and uncomment:
-![Sitecatch popup saving a page to Notion](docs/images/hero.gif)
+<!-- SCREENSHOT: hero — add a popup GIF at assets/hero.gif and uncomment:
+![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
 > **Status:** early development (v0). Store listings are coming. For now, install from source.

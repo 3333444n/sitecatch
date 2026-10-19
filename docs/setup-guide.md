@@ -34,13 +34,13 @@ Notion's UI changes from time to time. The labels below were checked against Not
 If you can't select **New token**, your workspace restricts personal access tokens. Ask an admin, or use an internal connection (Option B).
 
 <!-- SCREENSHOT: setup-1 -->
-![Developer portal: Personal access tokens page with the New token button](images/setup-1.png)
+![Developer portal: Personal access tokens page with the New token button](../public/setup/setup-1.png)
 
 <!-- SCREENSHOT: setup-2 -->
-![New token form: name Sitecatch, Notion API capability, expiration](images/setup-2.png)
+![New token form: name Sitecatch, Notion API capability, expiration](../public/setup/setup-2.png)
 
 <!-- SCREENSHOT: setup-3 -->
-![Token created dialog with the copy button (token blurred)](images/setup-3.png)
+![Token created dialog with the copy button (token blurred)](../public/setup/setup-3.png)
 
 To revoke it later: Developer portal → Personal access tokens. Workspace admins can also revoke any PAT in **Settings → Connections → All personal access tokens**.
 
@@ -53,7 +53,7 @@ To revoke it later: Developer portal → Personal access tokens. Workspace admin
 3. Click **Create a new connection**. Enter the name `Sitecatch` (you'll search for this name when sharing databases) and choose the workspace that holds your databases.
 
 <!-- SCREENSHOT: setup-4 -->
-![Developer portal: Internal connections, creating a connection named Sitecatch](images/setup-4.png)
+![Developer portal: Internal connections, creating a connection named Sitecatch](../public/setup/setup-4.png)
 
 4. Open the connection's **Configuration** tab and set **Capabilities**:
    - Check **Read content**, **Update content** and **Insert content**.
@@ -64,12 +64,12 @@ To revoke it later: Developer portal → Personal access tokens. Workspace admin
    - **Save**.
 
 <!-- SCREENSHOT: setup-5 -->
-![Configuration tab: Read, Update, Insert content; No user information](images/setup-5.png)
+![Configuration tab: Read, Update, Insert content; No user information](../public/setup/setup-5.png)
 
 5. Still on **Configuration**, find **API token**, click **Show**, then **Copy**. If it leaks, refresh it on the same tab.
 
 <!-- SCREENSHOT: setup-6 -->
-![Configuration tab: API token, Show and Copy](images/setup-6.png)
+![Configuration tab: API token, Show and Copy](../public/setup/setup-6.png)
 
 ## 2. Allow access to api.notion.com
 
@@ -78,7 +78,7 @@ The wizard checks whether the browser lets Sitecatch reach `api.notion.com`. Fir
 This permission covers only `api.notion.com`. It does not give Sitecatch access to the sites you visit.
 
 <!-- SCREENSHOT: setup-7 -->
-![Browser prompt asking to allow Sitecatch to access api.notion.com](images/setup-7.png)
+![Browser prompt asking to allow Sitecatch to access api.notion.com](../public/setup/setup-7.png)
 
 ## 3. Paste the token
 
@@ -89,7 +89,7 @@ Paste the token into the field. Sitecatch checks it right away (`GET /v1/users/m
 The token stays on this device (see [permissions-privacy.md](./permissions-privacy.md#token-storage)).
 
 <!-- SCREENSHOT: setup-8 -->
-![Sitecatch wizard: token pasted and validated, workspace shown](images/setup-8.png)
+![Sitecatch wizard: token pasted and validated, workspace shown](../public/setup/setup-8.png)
 
 ## 4. Share your databases (internal connection only)
 
@@ -104,12 +104,12 @@ A new connection can see **nothing** until you share pages with it. Do this for 
 5. **Confirm** that Sitecatch may access the page and its child pages.
 
 <!-- SCREENSHOT: setup-9 -->
-![Database page: ••• → Connections → + Add connection → Sitecatch → Confirm](images/setup-9.png)
+![Database page: ••• → Connections → + Add connection → Sitecatch → Confirm](../public/setup/setup-9.png)
 
 Alternative, from the Developer portal: open the Sitecatch connection → **Content access** tab → **Edit access** → pick the databases → save.
 
 <!-- SCREENSHOT: setup-10 -->
-![Developer portal: Content access tab → Edit access](images/setup-10.png)
+![Developer portal: Content access tab → Edit access](../public/setup/setup-10.png)
 
 Sharing a page also shares everything inside it. Sharing only the databases is the tighter option. To stop sharing later: ••• → Connections → Sitecatch → **Disconnect**.
 
@@ -118,7 +118,7 @@ Sharing a page also shares everything inside it. Sharing only the databases is t
 The last step lists the databases Sitecatch can see, with a search box and **Refresh**. You're done. Click **Create your first preset**.
 
 <!-- SCREENSHOT: setup-11 -->
-![Sitecatch wizard: list of visible databases](images/setup-11.png)
+![Sitecatch wizard: list of visible databases](../public/setup/setup-11.png)
 
 ### Can't see your database?
 
@@ -167,13 +167,31 @@ A preset says *which database* and *where each property's value comes from*. Exa
 Try it: open any article, click the Sitecatch toolbar button, check the pre-filled form, pick a Type, add Tags, click **Save**. When it's done, click **Open in Notion**.
 
 <!-- SCREENSHOT: setup-12 -->
-![Preset editor: Resources preset mappings](images/setup-12.png)
+![Preset editor: Resources preset mappings](../public/setup/setup-12.png)
 
 <!-- SCREENSHOT: setup-13 -->
-![Popup: pre-filled form and success with Open in Notion](images/setup-13.png)
+![Popup: pre-filled form and success with Open in Notion](../public/setup/setup-13.png)
 
 More on presets: [preset-model.md](./preset-model.md). Popup and options states: [ui-flows.md](./ui-flows.md).
 
 ## Screenshots
 
-Each `<!-- SCREENSHOT: setup-N -->` above is a slot. The same image is used in two places: `docs/images/setup-N.png` (these docs) and `public/setup/setup-N.png` (shown in the wizard, which falls back to a "Screenshot coming soon" placeholder until the file exists). setup-1 to setup-11 appear in the wizard; setup-12 and setup-13 only here. Blur tokens before committing.
+Each `<!-- SCREENSHOT: setup-N -->` above is a slot. Every image lives in **one place**: `public/setup/setup-N.png`. These docs link to it (`../public/setup/setup-N.png`), and the setup wizard shows the same file (served at `/setup/setup-N.png`), falling back to a "Screenshot coming soon" placeholder until it exists. setup-1 to setup-11 appear in the wizard; setup-12 and setup-13 only here.
+
+### Screenshots to capture
+
+**Blur tokens** (and any personal workspace details) before committing. PNG, roughly 1200–1600 px wide.
+
+- [ ] `setup-1.png`: Developer portal → Personal access tokens page, with the **New token** button visible.
+- [ ] `setup-2.png`: the **New token** form (name `Sitecatch`, Notion API capability, expiration).
+- [ ] `setup-3.png`: the **token created** dialog with the copy button (token blurred).
+- [ ] `setup-4.png`: Build → **Internal connections** → **Create a new connection** (name `Sitecatch`).
+- [ ] `setup-5.png`: the connection's **Configuration** tab, capabilities: Read / Update / Insert content, No user information.
+- [ ] `setup-6.png`: Configuration → **API token** with **Show** / **Copy** (token blurred).
+- [ ] `setup-7.png`: Firefox's permission prompt to allow Sitecatch to access **api.notion.com**.
+- [ ] `setup-8.png`: Sitecatch wizard, token pasted and **validated** (workspace and token name shown).
+- [ ] `setup-9.png`: a database page, **•••** → **Connections** → **+ Add connection** → Sitecatch.
+- [ ] `setup-10.png`: Developer portal → the connection's **Content access** tab → **Edit access**.
+- [ ] `setup-11.png`: Sitecatch wizard, **Your databases** list.
+- [ ] `setup-12.png`: preset editor with the **Resources** preset mappings.
+- [ ] `setup-13.png`: popup with the pre-filled form, and the success view with **Open in Notion**.

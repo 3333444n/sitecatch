@@ -22,4 +22,4 @@ These docs are the **source of truth** for Sitecatch. Code follows the docs, and
 | [roadmap.md](./roadmap.md) | v0 scope and later plans |
 | [decisions/](./decisions/README.md) | Architecture decision records (ADRs) |
 
-Start with [AGENTS.md](../AGENTS.md) for commands, workflow and code conventions. Images used by the docs live in [`images/`](./images/). Setup screenshots are marked `<!-- SCREENSHOT: setup-N -->` and stored as `images/setup-N.png`.
+Start with [AGENTS.md](../AGENTS.md) for commands, workflow and code conventions. Setup screenshots are marked `<!-- SCREENSHOT: setup-N -->` and stored once, as `public/setup/setup-N.png` (shown in the setup wizard and linked from the docs as `../public/setup/setup-N.png`). See the capture checklist in [setup-guide.md](./setup-guide.md#screenshots-to-capture).
