@@ -355,6 +355,19 @@ describe('createPage / updatePage', () => {
     expect(res).toEqual({ ok: true, data: { id: pageFixture.id, url: pageFixture.url } });
   });
 
+  it('treats a 5xx carrying additional_data.committed_resource_id as success', async () => {
+    const id = '1a2b3c4d-0000-4000-8000-123456789abc';
+    const { client, calls } = setup([
+      jsonResponse(
+        { object: 'error', status: 503, code: 'service_unavailable', message: 'x', additional_data: { committed_resource_id: id } },
+        503,
+      ),
+    ]);
+    const res = await client.createPage(body);
+    expect(calls).toHaveLength(1);
+    expect(res).toEqual({ ok: true, data: { id, url: 'https://www.notion.so/1a2b3c4d000040008000123456789abc' } });
+  });
+
   it('maps a 404 on update to db-not-shared mentioning the page', async () => {
     const { client } = setup([jsonResponse(errorFixtures.object_not_found, 404)]);
     const res = await client.updatePage('p1', { properties: {} });

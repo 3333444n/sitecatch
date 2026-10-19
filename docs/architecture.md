@@ -63,13 +63,13 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 
 | Type | Params | Response data | Notes |
 | --- | --- | --- | --- |
-| `auth/validate` | `{ token }` | `{ botName, workspaceName \| null }` | `GET /v1/users/me`. Stores the token in `local:auth` only on success. |
-| `auth/status` | — | `{ hasToken, hostPermission, workspaceName? }` | Cheap check on popup/options open. **Never returns the token.** |
-| `auth/clear` | — | `null` | Forgets the token. |
+| `auth/validate` | `{ token, tokenKind }` | `{ botName, workspaceName \| null, maxFileUploadBytes? }` | Trims the token, checks the api.notion.com host permission first (`no-host-permission` / `grant-permission`; the UI must call `permissions.request` in its click handler), then `GET /v1/users/me`. Stores `AuthState` in `local:auth` only on success; a new token clears the schema cache. |
+| `auth/status` | — | `{ hasToken, tokenKind?, hostPermission, workspaceName?, maxFileUploadBytes? }` | Cheap check on popup/options open. **Never returns the token.** |
+| `auth/clear` | — | `null` | Forgets the token and clears the session schema cache. |
 | `ds/list` | `{ query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources. |
-| `ds/schema` | `{ dataSourceId, force? }` | `DataSourceSchema` | Cached in `session:schema:<id>` unless `force`. |
+| `ds/schema` | `{ dataSourceId, force? }` | `DataSourceSchema` | Cached in `session:schema:<id>` for 5 minutes unless `force`. |
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
-| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | Queries the preset's data source on its dedupe property with the normalized URL. |
+| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | No dedupe property → `{ matches: [] }` without a request. Otherwise queries the dedupe property (by its live type: `url`, `rich_text` or `title`) for `urlVariants(url)` — the normalized URL **or** the raw one. |
 | `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
 | `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. |
 
@@ -115,28 +115,37 @@ sequenceDiagram
 
 ### Save pipeline (background, survives popup close)
 
+Implemented in `src/background/save-pipeline.ts` (all side effects injected, see its tests).
+
 ```mermaid
 flowchart TD
-  A[save/start] --> B[create JobState 'queued'<br/>session:job:id, return jobId]
-  B --> C[load preset + schema<br/>re-validate]
+  A[save/start] --> B[create JobState 'queued'<br/>session:job:id, return jobId<br/>pipeline runs detached]
+  B --> C[clear badge · auth + preset<br/>schema with force=true · validatePreset]
   C -->|blocking issue| E1[error: preset-invalid / edit-preset]
-  C --> D[build properties from FormValues<br/>by property id, chunk 2000 chars,<br/>sanitize select names]
-  D --> F{screenshot needed?<br/>files prop / cover=screenshot / bodyImage}
-  F -->|yes| G[status 'uploading'<br/>POST /v1/file_uploads<br/>POST /v1/file_uploads/id/send]
+  C --> N[normalizeUrl the value written<br/>to the dedupe property]
+  N --> F{screenshot needed?<br/>files prop / files mapping /<br/>cover=screenshot / bodyImage}
+  F -->|yes| G[status 'uploading'<br/>bigger than workspace limit? → recompress<br/>POST /v1/file_uploads + /send, once]
   F -->|no| H
-  G -->|too large / failed| E2[error: upload-too-large / network]
-  G --> H[status 'creating']
+  G -->|upload-too-large| W[continue without screenshot<br/>console.warn]
+  G -->|other error| E2[error, e.g. network / retry]
+  G --> H[status 'creating'<br/>buildProperties + buildPageExtras]
+  W --> H
   H --> I{mode}
   I -->|create / duplicate| J[POST /v1/pages<br/>properties + icon + cover + image block]
-  I -->|update| K[PATCH /v1/pages/pageId<br/>properties + icon + cover<br/>no body image appended]
-  J & K -->|ok| L[status 'done', pageUrl<br/>prepend local:history<br/>badge ✓]
-  J & K -->|error| E3[status 'error'<br/>no blind retry of create<br/>badge !]
+  I -->|update| K[PATCH /v1/pages/pageId<br/>properties + icon + cover<br/>no children]
+  J -->|network / timeout / 5xx| R[re-run dup check<br/>page edited since job start<br/>and not there before?]
+  R -->|found| L
+  R -->|not found| E3[error network / retry]
+  J & K -->|ok| L[status 'done', pageUrl<br/>prepend local:history, lastPresetId<br/>badge ✓ for 4 s]
+  J & K -->|other error| E4[status 'error' · badge ! until next save]
 ```
 
-- The upload happens **once**. Its `file_upload` id is reused for the `files` property, the cover and the image block.
+- The upload happens **once**. Its `file_upload` id is reused for the `files` property (`preset.screenshot.filesPropertyId`, or a `files` mapping with the `screenshot` extractor), the cover and the image block.
+- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning is logged. `JobState` has no warnings field yet, so the warning isn't shown in the UI.
 - **Update** replaces the mapped properties and the cover (and icon). It does **not** append another body image.
-- Errors become `AppError`s ([notion-api.md](./notion-api.md#error--user-message)). A create that failed with 5xx or a timeout is **not** retried automatically. Re-running the duplicate check is how Sitecatch finds out whether the page actually got saved.
-- The popup polls `job/get`. If the popup closes, the job still finishes and the toolbar badge shows ✓ or !. The next time the popup opens it can show the latest job.
+- Only the dedupe property's URL is normalized (`normalizeUrl`), so a re-save of the same page with `?utm_…` or `#fragment` is detected. Other URL properties keep the captured value.
+- Errors become `AppError`s ([notion-api.md](./notion-api.md#error--user-message)). A create that failed with a network error, timeout or 5xx is **not** retried. If Notion's error carries `additional_data.committed_resource_id`, the client reports success with that page. Otherwise the pipeline waits briefly and re-runs the duplicate query: a match whose `last_edited_time` is at or after the job start (minus 2 minutes, since Notion rounds to the minute) and that wasn't already there before a `duplicate`-mode create counts as saved. If none is found, the job ends with `network` / `retry`.
+- The popup polls `job/get`. If the popup closes, the job still finishes and the toolbar badge shows ✓ (green, cleared after 4 s) or ! (red, cleared when the next save starts). History and `lastPresetId` are written best-effort after the job is marked `done`.
 
 ### Duplicate check
 
@@ -178,6 +187,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 - **Background context.** WXT builds MV3 for both browsers. Firefox runs the background as a non-persistent **event page** (`background.scripts`). Chrome runs it as a **service worker**. Either can be stopped when idle and restarted on the next event.
 - **No background globals for state.** Anything that has to outlive one event (jobs, schema cache, auth) lives in `storage`. An in-memory value, such as the request queue, may only be something that can be lost safely.
 - Register listeners synchronously at the top level of `defineBackground` (router, `onInstalled`) so they exist when the browser wakes the background up for an event.
+- **Router** (`src/background/router.ts`): one `runtime.onMessage` listener that replies with `sendResponse` + `return true` (WXT's fakeBrowser only delivers replies that way). It ignores anything that isn't `isRequest()`, and anything not sent by our own extension pages: `sender.id` must equal `runtime.id`, and `sender.url` (when present) must be inside the extension origin; a sender with a `tab` but no extension URL (a content script) is ignored. Handler throws become `err(toAppError(…))`.
 - **Service-worker limits (Chrome).** No DOM is available. Screenshot downscaling must use `OffscreenCanvas` / `createImageBitmap`, which work in both browsers' backgrounds.
 - `tabs.captureVisibleTab` relies on the `activeTab` grant that a toolbar click gives. Behavior in the Firefox MV3 popup is still an open item to verify. The fallback is to request `<all_urls>` as an optional permission at capture time ([roadmap.md](./roadmap.md)).
 - `browser.permissions.request` must be called directly from a user click handler (the "Grant access" button).
