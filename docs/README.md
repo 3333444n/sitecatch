@@ -6,7 +6,7 @@ These docs are the **source of truth** for Sitecatch. Code follows the docs, and
 
 | Doc | Contents |
 | --- | --- |
-| [setup-guide.md](./setup-guide.md) | Create the Notion connection, paste the token, share databases, first preset, troubleshooting |
+| [setup-guide.md](./setup-guide.md) | Create a personal access token (recommended) or internal connection, paste the token, share databases (connections only), first preset, troubleshooting, screenshots to capture |
 | [permissions-privacy.md](./permissions-privacy.md) | Each permission and why, data flow, what is stored where, token handling |
 | [ui-flows.md](./ui-flows.md) | Popup states, setup wizard, preset editor, settings, import/export |
 

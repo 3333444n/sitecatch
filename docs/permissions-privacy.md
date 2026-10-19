@@ -58,19 +58,19 @@ What Notion does with this data is covered by Notion's own terms and privacy pol
 
 | What | Storage | Leaves the device? |
 | --- | --- | --- |
-| Notion token, bot/workspace name | `storage.local` (`local:auth`) | No (only sent to api.notion.com as a header) |
+| Notion token, token kind, bot/workspace name, upload limit | `storage.local` (`local:auth`) | No (only sent to api.notion.com as a header) |
 | Settings (capture delay, JPEG quality) | `storage.local` | No |
 | Last 20 saves (title, URLs, preset, time) | `storage.local` (`local:history`) | No |
 | Presets | `storage.sync` | Synced by **your browser's** sync service (Mozilla account / Google account), if enabled |
-| Save job status, schema cache | `storage.session` | No. Cleared when the browser closes. |
+| Save job status, schema cache, the popup's last job | `storage.session` | No. Cleared when the browser closes. |
 
 Screenshots are **not** stored by Sitecatch. They exist in memory until uploaded.
 
 ## Token storage
 
-- The token is stored in **`storage.local`**, which lives **unencrypted in your browser profile** on disk (same as other extension data). Anyone with access to your OS account/profile could read it. The token gives access only to pages you've shared with the Sitecatch connection.
+- The token is stored in **`storage.local`**, which lives **unencrypted in your browser profile** on disk (same as other extension data). Anyone with access to your OS account/profile could read it. A **personal access token** can read and edit everything you can in that workspace until it expires or you revoke it; an **internal connection** token reaches only the pages you've shared with the Sitecatch connection. Pick the narrower one if that matters to you.
 - It is **never synced** (`storage.sync` is never used for it), **never exported** with presets, **never logged**, never shown back in the UI after validation, and never sent anywhere except `api.notion.com`.
-- Remove it: Options → Settings → **Disconnect** (calls `auth/clear`), or uninstall Sitecatch. To fully revoke it, delete the connection or refresh its token in Notion's Developer portal ([setup-guide.md](./setup-guide.md)).
+- Remove it: Options → Settings → **Disconnect** (calls `auth/clear`), or uninstall Sitecatch. To fully revoke it, use Notion's Developer portal: revoke the personal access token, or delete the connection / refresh its token ([setup-guide.md](./setup-guide.md)).
 
 ## Remote code
 

@@ -14,11 +14,11 @@ A **preset** describes how one kind of save works: which Notion data source to w
 | `dataSourceId` | `string` | Target Notion **data source** ([notion-api.md](./notion-api.md#data-sources-model)). |
 | `dataSourceName` | `string` | Snapshot of the name, used for display before the schema loads or when offline. |
 | `mappings` | `Mapping[]` | One per property that Sitecatch writes. **Unmapped properties are never shown or written.** |
-| `screenshot.filesPropertyId` | `string \| null` | `files` property that receives the screenshot, or `null`. |
+| `screenshot.filesPropertyId` | `string \| null` | `files` property that receives the screenshot, or `null`. This is the **only** way to put the screenshot into a `files` property (see [Screenshot into a files property](#screenshot-into-a-files-property)). |
 | `screenshot.bodyImage` | `boolean` | Also add the screenshot as an image block in the page body. Applies to new pages only, never to updates. |
 | `cover` | `'none' \| 'screenshot' \| 'ogImage'` | Page cover: none, the uploaded screenshot, or the page's `og:image` as an external URL. |
 | `icon` | `'none' \| 'favicon'` | Page icon: none, or the site favicon as an external URL. |
-| `dedupe.propertyId` | `string \| null` | `url` (or text) property compared against the normalized page URL. `null` turns duplicate detection off. |
+| `dedupe.propertyId` | `string \| null` | `url` (or `rich_text` / `title`) property compared against the normalized page URL. On save, the value written to this property is the **normalized** URL, so re-saves match. `null` turns duplicate detection off. |
 | `updatedAt` | ISO 8601 | Last edit. |
 
 The screenshot is uploaded **at most once per save** and reused for the files property, the cover and the body image ([ADR 0007](./decisions/0007-screenshot-jpeg-file-upload.md)).
@@ -63,7 +63,7 @@ The popup form state is `FormValues`: a record keyed by property id. Each entry 
 
 ## Compatibility matrix
 
-Each extractor declares an output `ValueKind`. A mapping from an extractor is allowed only if the property type is listed for that kind. The preset editor offers only compatible extractors (`src/lib/presets/compat.ts`, with `ExtractorDef.compatible` per extractor).
+Each extractor declares an output `ValueKind`. A mapping from an extractor is allowed only if the property type is listed for that kind. The table lives in **one place**, `VALUE_KIND_TARGETS` in `src/lib/extract/compat-table.ts` (a contract file); both `ExtractorDef.compatible` and the preset editor's `src/lib/presets/compat.ts` read it.
 
 | Output kind | Extractors | Allowed property types |
 | --- | --- | --- |
@@ -71,7 +71,7 @@ Each extractor declares an output `ValueKind`. A mapping from an extractor is al
 | `url` | `url`, `canonicalUrl` | `url`, `rich_text`, `title` |
 | `list` | `fonts` | `multi_select`, `rich_text` (joined with `, `) |
 | `date` | `dateSaved` | `date` |
-| `image` | `screenshot`, `favicon`, `ogImage` | `files` |
+| `image` | `favicon`, `ogImage` (and `screenshot`, see below) | `files` |
 
 `number`, `checkbox`, `status`, `email` and `phone_number` have no compatible extractor in v0. They can be filled from `ask` or `static` only.
 
@@ -79,7 +79,8 @@ Conversions:
 
 - Text → `select` uses the text as the option name, with commas replaced. Text → `multi_select` produces a single option.
 - List → `rich_text` joins the items with `, `.
-- Image → `files`: `screenshot` becomes the uploaded file. `favicon` and `ogImage` become external files.
+- Image → `files`: `favicon` and `ogImage` become external files.
+- Dates: `date` values that include a time but no UTC offset (the popup's date-time input, `dateSaved`) get the **local UTC offset** appended (`withUtcOffset`, DST-aware), because Notion treats an offset-less date-time as UTC. Date-only values and values that already carry an offset are left alone.
 
 ## Validation
 
@@ -261,6 +262,6 @@ Two databases from the [E2E checklist](./testing.md#manual-e2e-checklist). Prope
 }
 ```
 
-## Open questions
+## Screenshot into a files property
 
-- **Screenshot into a `files` property has two spellings.** `screenshot.filesPropertyId` and a `files` mapping with `extractor: "screenshot"` both express the same thing. Until this is settled, the preset editor uses `screenshot.filesPropertyId` and offers the `screenshot` extractor only in a `files` mapping that differs from it. Both resolve to the same single upload.
+`screenshot.filesPropertyId` is the single way to attach the screenshot to a `files` property. The preset editor never offers the `screenshot` extractor for a mapping; choosing **Attach screenshot to** removes any mapping on that property. A preset imported or created before this rule may still contain a `files` mapping with `extractor: "screenshot"`: it keeps working (it resolves to the same single upload), and the editor shows a non-blocking notice suggesting the Screenshot section instead.

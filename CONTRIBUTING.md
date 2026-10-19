@@ -18,8 +18,8 @@ pnpm dev:firefox   # or: pnpm dev (Chrome)
   git worktree add ../sitecatch-wt/<name> -b <type>/<name>   # e.g. feat/tech-extractor, fix/dup-check
   ```
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Keep commits small.
-- Run **`pnpm check`** before opening a PR or merging (typecheck, lint, tests, Firefox build, web-ext lint).
-- Contract files (types, messaging protocol, storage items, errors, theme tokens) are shared interfaces. Propose changes in an issue or PR description first. See [AGENTS.md](AGENTS.md#contract-files-frozen).
+- Run **`pnpm check`** before opening a PR or merging (typecheck, lint, tests, Firefox build, web-ext lint). `web-ext lint` reports one known warning about `innerHTML` in Preact's bundled `jsx-runtime`; it's harmless and not an error.
+- Contract files (types, the extractor compatibility table, messaging protocol, storage items, errors, theme tokens) are shared interfaces. Propose changes in an issue or PR description first. See [AGENTS.md](AGENTS.md#contract-files-frozen).
 
 ## Docs
 
@@ -29,6 +29,8 @@ pnpm dev:firefox   # or: pnpm dev (Chrome)
 
 - Add an extractor: [docs/extractors.md](docs/extractors.md#adding-an-extractor)
 - Testing approach and manual checklist: [docs/testing.md](docs/testing.md)
+- Change the icon: edit `assets/icon.svg`, then `pnpm icons`
+- Setup screenshots: `public/setup/setup-N.png` ([capture checklist](docs/setup-guide.md#screenshots-to-capture))
 
 ## Code of conduct
 

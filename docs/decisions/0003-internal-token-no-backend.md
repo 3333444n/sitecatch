@@ -1,6 +1,6 @@
 # 0003. Internal connection token, no backend
 
-- Status: Accepted
+- Status: Accepted, amended by [0009](./0009-personal-access-token-default.md) (personal access token is now the default; internal connections remain supported)
 - Date: 2026-10
 
 ## Context
@@ -17,4 +17,4 @@ Users create their own **internal connection** and paste its API token into Site
 - Setup takes more steps (create connection, copy token, share each database). The guided wizard and [setup-guide.md](../setup-guide.md) exist to offset that.
 - Only Workspace Owners can create internal connections.
 - Each database must be shared with the connection explicitly. This also limits what a leaked token can reach.
-- OAuth (one-click) and personal access tokens remain options for later ([roadmap.md](../roadmap.md)).
+- OAuth (one-click) remains an option for later ([roadmap.md](../roadmap.md)). Personal access tokens were added in v0 ([ADR 0009](./0009-personal-access-token-default.md)).
