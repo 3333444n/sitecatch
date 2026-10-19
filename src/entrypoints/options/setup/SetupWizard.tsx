@@ -431,6 +431,7 @@ export function TokenStep({ kind, granted, onGranted, validated, onValidated }: 
             <Button
               size="sm"
               variant="ghost"
+              icon={visible ? 'eye-off' : 'eye'}
               aria-pressed={visible ? 'true' : 'false'}
               onClick={() => {
                 setVisible(!visible);

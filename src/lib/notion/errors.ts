@@ -59,7 +59,7 @@ export function redactError(error: AppError, token?: string): AppError {
 }
 
 const SHARE_HINT =
-  'Open the database in Notion → ••• → Connections → add your integration, then try again.';
+  'With an internal connection: open the database in Notion → ••• → Connections → add your Sitecatch connection. With a personal access token: make sure you can open the database yourself. Then try again.';
 
 const UPLOAD_SIZE_PATTERN = /(too large|exceeds?|size limit|file size|maximum size|max(imum)? file)/i;
 
@@ -92,7 +92,7 @@ export function mapHttpError(
     return {
       code: 'invalid-token',
       message:
-        'Notion didn’t accept your integration token — it may be mistyped or revoked. Open setup and paste your integration’s secret again.',
+        'Notion didn’t accept your token — it may be mistyped, expired or revoked. Open setup and paste a new token.',
       action: 'open-setup',
       detail,
     };
@@ -102,7 +102,7 @@ export function mapHttpError(
     return {
       code: 'missing-capability',
       message:
-        'Your Notion integration isn’t allowed to do this. In notion.so/profile/integrations, open your integration → Capabilities and enable “Read content”, “Update content” and “Insert content”, then try again.',
+        'Notion says Sitecatch isn’t allowed to do this. In Notion’s Developer portal (app.notion.com/developers/connections), open your Sitecatch token or connection and enable reading, updating and inserting content (for a personal access token, also check you can edit this database), then try again.',
       action: 'open-setup',
       detail,
     };
@@ -111,8 +111,8 @@ export function mapHttpError(
   if (status === 404 || code === 'object_not_found') {
     const what =
       op === 'update-page'
-        ? 'The existing Notion page couldn’t be found — it may have been deleted, or its database isn’t shared with your integration.'
-        : 'Sitecatch can’t access this Notion database — it was deleted or isn’t shared with your integration.';
+        ? 'The existing Notion page couldn’t be found — it may have been deleted, or Sitecatch can no longer see its database.'
+        : 'Sitecatch can’t access this Notion database — it was deleted or Sitecatch can’t see it.';
     return { code: 'db-not-shared', message: `${what} ${SHARE_HINT}`, action: 'reshare-db', detail };
   }
 

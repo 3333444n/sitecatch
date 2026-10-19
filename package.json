@@ -1,6 +1,6 @@
 {
   "name": "sitecatch",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Collect websites into your Notion databases.",
   "type": "module",
@@ -22,7 +22,8 @@
     "lint": "eslint .",
     "lint:ext": "web-ext lint -s .output/firefox-mv3",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build:firefox && pnpm lint:ext",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.11.3",
@@ -32,6 +33,7 @@
     "@babel/core": "^7.29.7",
     "@eslint/js": "^10.0.1",
     "@preact/preset-vite": "^2.10.6",
+    "@resvg/resvg-js": "^2.6.2",
     "@testing-library/preact": "^3.2.4",
     "@testing-library/user-event": "^14.6.8",
     "eslint": "^10.13.0",

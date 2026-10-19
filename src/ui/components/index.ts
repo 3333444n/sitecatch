@@ -35,6 +35,11 @@ export { EmptyState, type EmptyStateProps } from './EmptyState';
 export { SuccessCard, Toast, type SuccessCardProps, type ToastProps } from './SuccessCard';
 export { Stepper, type StepperProps, type StepItem, type StepStatus } from './Stepper';
 export { Tabs, type TabsProps, type TabItem } from './Tabs';
+export {
+  SegmentedControl,
+  type SegmentedControlProps,
+  type SegmentedOption,
+} from './SegmentedControl';
 export { ScreenshotSlot, type ScreenshotSlotProps } from './ScreenshotSlot';
 export { Thumbnail, type ThumbnailProps } from './Thumbnail';
 export {

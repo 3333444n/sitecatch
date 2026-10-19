@@ -43,23 +43,23 @@ flowchart LR
 | Background | `src/entrypoints/background.ts`, `src/background/` | Message `router.ts` dispatches to one handler per request type (`handlers/`). `save-pipeline.ts` runs saves. It owns the token, all Notion calls, capture and storage writes for jobs. |
 | In-page probe | `src/lib/capture/` | A function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
 | Notion client | `src/lib/notion/` | Plain `fetch`, `Notion-Version: 2026-03-11`, rate-limit queue, retries, multipart upload, error mapping. See [notion-api.md](./notion-api.md). |
-| Extractors | `src/lib/extract/` | Registry of pure `ExtractorDef.extract(raw, ctx)` functions. See [extractors.md](./extractors.md). |
+| Extractors | `src/lib/extract/` | Registry of pure `ExtractorDef.extract(raw, ctx)` functions (`needsPage: false` ones run even when the page can't be probed). `compat-table.ts` holds the single extractor-output → property-type table. See [extractors.md](./extractors.md). |
 | Capture | `src/lib/capture/` | Restricted-URL detection, screenshot (`tabs.captureVisibleTab`, JPEG, downscale). |
-| Presets | `src/lib/presets/` | Storage, validation against schema, compat matrix, import/export. See [preset-model.md](./preset-model.md). |
-| Properties | `src/lib/properties/` | `FormValues` → Notion property JSON, 2000-char chunking, select sanitizing. |
+| Presets | `src/lib/presets/` | Storage, validation against schema (`PresetIssue.blocking`), compat helpers over `compat-table.ts`, import/export. See [preset-model.md](./preset-model.md). |
+| Properties | `src/lib/properties/` | `FormValues` → Notion property JSON, 2000-char chunking, select sanitizing, local UTC offset for date-times, warnings for shortened/skipped values. |
 | URL | `src/lib/url/normalize.ts` | URL normalization for duplicate detection. |
 | Storage | `src/lib/storage/items.ts` | Every persisted item, typed (WXT storage). |
-| UI kit | `src/ui/` | `theme.css` tokens (light/dark), shared components, property inputs. |
+| UI kit | `src/ui/` | `theme.css` tokens (light/dark), shared components (`Button`, `SegmentedControl`, `Tabs`, `Stepper`, `ErrorBanner`, `Icon`…), property inputs. |
 
 Rules (from [AGENTS.md](../AGENTS.md)):
 
 - **All Notion API calls happen in the background.** UI pages and the probe never see the token.
 - Every message response is a `Result<T>` (`src/lib/errors.ts`). Handlers never throw.
-- Contract files (`errors.ts`, `notion/types.ts`, `extract/types.ts`, `presets/types.ts`, `messaging/*`, `storage/items.ts`, `ui/theme.css`) change only through the orchestrator.
+- Contract files (`errors.ts`, `notion/types.ts`, `extract/types.ts`, `extract/compat-table.ts`, `presets/types.ts`, `messaging/*`, `storage/items.ts`, `ui/theme.css`) change only through the orchestrator.
 
 ## Message protocol
 
-UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`). The background router checks messages with `isRequest()` and ignores anything else. Source of truth: `src/lib/messaging/protocol.ts`.
+UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`). The background router checks messages with `isRequest()` and ignores anything else, and only answers our own extension pages (see [router sender rules](#cross-browser-notes)). Source of truth: `src/lib/messaging/protocol.ts`.
 
 | Type | Params | Response data | Notes |
 | --- | --- | --- | --- |
@@ -69,9 +69,9 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 | `ds/list` | `{ query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources. |
 | `ds/schema` | `{ dataSourceId, force? }` | `DataSourceSchema` | Cached in `session:schema:<id>` for 5 minutes unless `force`. |
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
-| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | No dedupe property → `{ matches: [] }` without a request. Otherwise queries the dedupe property (by its live type: `url`, `rich_text` or `title`) for `urlVariants(url)` — the normalized URL **or** the raw one. |
+| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | No dedupe property, or one that the live schema no longer has as `url` / `rich_text` / `title` ("Duplicate check is off") → `{ matches: [] }` without a query. Otherwise queries the dedupe property (by its live type) for `urlVariants(url)` — the normalized URL **or** the raw one. |
 | `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
-| `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. |
+| `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. `done` carries `pageUrl` and optional `warnings`. |
 
 ## Data flow
 
@@ -122,11 +122,11 @@ flowchart TD
   A[save/start] --> B[create JobState 'queued'<br/>session:job:id, return jobId<br/>pipeline runs detached]
   B --> C[clear badge · auth + preset<br/>schema with force=true · validatePreset]
   C -->|blocking issue| E1[error: preset-invalid / edit-preset]
-  C --> N[normalizeUrl the value written<br/>to the dedupe property]
+  C --> N[normalizeUrl the value written<br/>to the dedupe property<br/>skipped when dedupe is off]
   N --> F{screenshot needed?<br/>files prop / files mapping /<br/>cover=screenshot / bodyImage}
   F -->|yes| G[status 'uploading'<br/>bigger than workspace limit? → recompress<br/>POST /v1/file_uploads + /send, once]
   F -->|no| H
-  G -->|upload-too-large| W[continue without screenshot<br/>console.warn]
+  G -->|upload-too-large| W[continue without screenshot<br/>warning → JobState.warnings]
   G -->|other error| E2[error, e.g. network / retry]
   G --> H[status 'creating'<br/>buildProperties + buildPageExtras]
   W --> H
@@ -136,14 +136,15 @@ flowchart TD
   J -->|network / timeout / 5xx| R[re-run dup check<br/>page edited since job start<br/>and not there before?]
   R -->|found| L
   R -->|not found| E3[error network / retry]
-  J & K -->|ok| L[status 'done', pageUrl<br/>prepend local:history, lastPresetId<br/>badge ✓ for 4 s]
+  J & K -->|ok| L[status 'done', pageUrl, warnings<br/>prepend local:history, lastPresetId<br/>badge ✓ for 4 s]
   J & K -->|other error| E4[status 'error' · badge ! until next save]
 ```
 
-- The upload happens **once**. Its `file_upload` id is reused for the `files` property (`preset.screenshot.filesPropertyId`, or a `files` mapping with the `screenshot` extractor), the cover and the image block.
-- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning is logged. `JobState` has no warnings field yet, so the warning isn't shown in the UI.
+- The upload happens **once**. Its `file_upload` id is reused for the `files` property (`preset.screenshot.filesPropertyId`, the only screenshot → files path the editor offers; a legacy `files` mapping with the `screenshot` extractor still resolves to the same upload), the cover and the image block.
+- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning ("Saved without screenshot: …") is recorded. All save warnings (screenshot plus dropped/shortened-property warnings from `buildProperties`) are stored in `JobState.warnings` on the `done` job, and the popup's success view shows them as small notes.
 - **Update** replaces the mapped properties and the cover (and icon). It does **not** append another body image.
-- Only the dedupe property's URL is normalized (`normalizeUrl`), so a re-save of the same page with `?utm_…` or `#fragment` is detected. Other URL properties keep the captured value.
+- Only the dedupe property's URL is normalized (`normalizeUrl`) — the **normalized URL is what gets written** to it — so a re-save of the same page with `?utm_…` or `#fragment` is detected. Other URL properties keep the captured value. If the dedupe property is missing or no longer `url` / `rich_text` / `title`, validation reports a non-blocking "Duplicate check is off" issue and the pipeline skips normalization and recovery queries.
+- Date-times without a UTC offset (popup date-time inputs) get the local offset appended before sending (`withUtcOffset`), since Notion reads offset-less date-times as UTC.
 - Errors become `AppError`s ([notion-api.md](./notion-api.md#error--user-message)). A create that failed with a network error, timeout or 5xx is **not** retried. If Notion's error carries `additional_data.committed_resource_id`, the client reports success with that page. Otherwise the pipeline waits briefly and re-runs the duplicate query: a match whose `last_edited_time` is at or after the job start (minus 2 minutes, since Notion rounds to the minute) and that wasn't already there before a `duplicate`-mode create counts as saved. If none is found, the job ends with `network` / `retry`.
 - The popup polls `job/get`. If the popup closes, the job still finishes and the toolbar badge shows ✓ (green, cleared after 4 s) or ! (red, cleared when the next save starts). History and `lastPresetId` are written best-effort after the job is marked `done`.
 
@@ -151,8 +152,8 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A[dup/check presetId, url] --> B{preset.dedupe.propertyId?}
-  B -->|null| Z[matches = empty]
+  A[dup/check presetId, url] --> B{preset.dedupe.propertyId<br/>usable in live schema?}
+  B -->|null / missing / wrong type| Z[matches = empty]
   B -->|set| C[normalize URL<br/>src/lib/url/normalize.ts]
   C --> D[POST /v1/data_sources/id/query<br/>filter on dedupe property]
   D --> E{matches?}
@@ -171,7 +172,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 
 | Area | Key | Type | Contents |
 | --- | --- | --- | --- |
-| `local` | `local:auth` | `AuthState \| null` | Token, bot name, workspace name, `validatedAt`. **Never synced.** |
+| `local` | `local:auth` | `AuthState \| null` | Token, `tokenKind` (`personal` / `connection`), bot name, workspace name, `maxFileUploadBytes?`, `validatedAt`. **Never synced.** |
 | `local` | `local:settings` | `Settings` | `captureDelayMs` (default 0), `jpegQuality` (default 0.85). |
 | `local` | `local:lastPresetId` | `string \| null` | Preset preselected in the popup. |
 | `local` | `local:history` | `HistoryEntry[]` | Last 20 saves (`HISTORY_LIMIT`), newest first. |
@@ -179,6 +180,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 | `sync` | `sync:preset:<id>` | `Preset \| null` | One item per preset (8 KB per-item quota, see [ADR 0005](./decisions/0005-presets-in-storage-sync.md)). |
 | `session` | `session:job:<id>` | `JobState \| null` | Save job status, so it survives popup close and background restarts within the browser session. |
 | `session` | `session:schema:<dataSourceId>` | `CachedSchema \| null` | Schema cache with `fetchedAt`. Pass `force` to refresh. |
+| `session` | `session:popup:lastJob` | `LastJobRecord \| null` | The popup's most recent save (`{ jobId, presetId, url, mode }`), so a reopened popup can resume showing it. |
 
 `storage.session` is in-memory and cleared when the browser closes. Screenshots are never written to storage. They travel inside `CaptureResult` in the `save/start` message.
 
@@ -187,7 +189,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 - **Background context.** WXT builds MV3 for both browsers. Firefox runs the background as a non-persistent **event page** (`background.scripts`). Chrome runs it as a **service worker**. Either can be stopped when idle and restarted on the next event.
 - **No background globals for state.** Anything that has to outlive one event (jobs, schema cache, auth) lives in `storage`. An in-memory value, such as the request queue, may only be something that can be lost safely.
 - Register listeners synchronously at the top level of `defineBackground` (router, `onInstalled`) so they exist when the browser wakes the background up for an event.
-- **Router** (`src/background/router.ts`): one `runtime.onMessage` listener that replies with `sendResponse` + `return true` (WXT's fakeBrowser only delivers replies that way). It ignores anything that isn't `isRequest()`, and anything not sent by our own extension pages: `sender.id` must equal `runtime.id`, and `sender.url` (when present) must be inside the extension origin; a sender with a `tab` but no extension URL (a content script) is ignored. Handler throws become `err(toAppError(…))`.
+- **Router sender rules** (`src/background/router.ts`, `isTrustedSender`): one `runtime.onMessage` listener that replies with `sendResponse` + `return true` (WXT's fakeBrowser only delivers replies that way). It ignores anything that isn't `isRequest()`, and anything not sent by our own extension pages: `sender.id` must equal `runtime.id`, and `sender.url` (when present) must be inside the extension origin; a sender with a `tab` but no extension URL (a content script) is ignored. Handler throws become `err(toAppError(…))`.
 - **Service-worker limits (Chrome).** No DOM is available. Screenshot downscaling must use `OffscreenCanvas` / `createImageBitmap`, which work in both browsers' backgrounds.
 - `tabs.captureVisibleTab` relies on the `activeTab` grant that a toolbar click gives. Behavior in the Firefox MV3 popup is still an open item to verify. The fallback is to request `<all_urls>` as an optional permission at capture time ([roadmap.md](./roadmap.md)).
 - `browser.permissions.request` must be called directly from a user click handler (the "Grant access" button).

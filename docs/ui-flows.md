@@ -45,7 +45,7 @@ If there are no presets yet: "Create your first preset" → opens Options → Pr
 - `required` ask fields block **Save** until filled; the footer says which fields are missing.
 - **Save** stays disabled while capturing, loading the schema, or checking for duplicates. Its label is "Save to *Database*" (or "Save as duplicate" when duplicates were found). **Ctrl/⌘ + Enter** saves from anywhere; the first editable field gets focus.
 - Capture warnings (e.g. "Screenshot was downscaled") appear as small notes.
-- **Preset issues** ([preset-model.md](./preset-model.md#validation)): blocking issues disable Save and show **Edit preset**. Non-blocking ones (renamed, select option will be created, dedupe skipped) show as a dismissible notice.
+- **Preset issues** ([preset-model.md](./preset-model.md#validation)): blocking issues disable Save and show **Edit preset**. Non-blocking ones (renamed, select option will be created, "Duplicate check is off: …" when the dedupe property was deleted or changed type) show as a dismissible notice.
 
 ### Duplicate banner
 
@@ -67,7 +67,7 @@ The popup remembers its most recent job in `session:popup:lastJob` (`{ jobId, pr
 
 ### Success
 
-"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab), **Save with another preset** (back to the form, duplicate check re-run) and **Close**. The popup doesn't close by itself. The entry is added to `local:history`. Reopening it on the same page shows the duplicate banner.
+"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab), **Save with another preset** (back to the form, duplicate check re-run) and **Close**. Save warnings (`JobState.warnings`, e.g. "Saved without screenshot: …" or a property that was shortened/skipped) appear under the card as small notes. The popup doesn't close by itself. The entry is added to `local:history`. Reopening it on the same page shows the duplicate banner.
 
 ### Error
 
@@ -111,7 +111,7 @@ A vertical `Stepper` (completed steps are clickable to go back) and one step at 
 | 1 | **Choose how to connect**: two radio cards, PAT marked *Recommended* | same |
 | 2 | **Create the token**: Developer portal → Personal access tokens → New token → name, capabilities, expiration → Create token; "shown only once" warning; screenshots setup-1…3 | Workspace Owner note; Build → Internal connections → Create a new connection → Configuration: Read/Update/Insert content, No user information → API token Show/Copy; screenshots setup-4…6 |
 | 3 | **Allow access to Notion**: `permissions.contains` first; if missing, **Grant access to api.notion.com** calls `permissions.request({origins:['https://api.notion.com/*']})` synchronously in the click handler. Granted/denied states. Skipped automatically when already granted. setup-7 | same |
-| 4 | **Paste your token**: masked input with Show/Hide. Pasting validates instantly (`auth/validate {token, tokenKind}`); **Check token** does too. Success shows workspace + bot name; errors via `ErrorBanner` (invalid token gets a method-specific hint; `grant-permission` re-requests access). Continue is enabled once validated. setup-8 | same |
+| 4 | **Paste your token**: masked input with a Show/Hide button (eye icon). Pasting validates instantly (`auth/validate {token, tokenKind}`); **Check token** does too. Success shows workspace + bot name; errors via `ErrorBanner` (invalid token gets a method-specific hint; `grant-permission` re-requests access). Continue is enabled once validated. setup-8 | same |
 | 5 | — | **Share your databases**: ••• → Connections → + Add connection → Sitecatch → Confirm, or Developer portal → Content access → Edit access. setup-9, setup-10 |
 | last | **Your databases**: `ds/list` with search (debounced, server-side `query`) and **Refresh**; empty state **"Can't see your database?"** with method-specific causes; **Create your first preset** → `#/presets/new`. setup-11 | same |
 
@@ -119,12 +119,12 @@ When a token already exists, the wizard opens on the last step and shows a "Conn
 
 ### Presets list
 
-Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, target database, mapped property count (+ screenshot), and a status badge from `ds/schema` + validation: *Checking…*, *Ready*, *Ready, with notes*, *Needs fix*, *Database not shared* / *Can't check*. Actions: **New preset**, open (click the name), **Move up/down**, **Duplicate** (new id, "(copy)"), **Delete** (inline confirm).
+Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, target database, mapped property count (+ screenshot), and a status badge from `ds/schema` + validation: *Checking…*, *Ready*, *Ready, with notes*, *Needs fix*, *Database not shared* / *Can't check*. Actions: **New preset**, open (click the name), **Move up/down** (chevron icon buttons), **Duplicate** (new id, "(copy)"), **Delete** (inline confirm).
 
 ### Preset editor
 
 1. **Basics**: name; target database shown read-only with **Change**, which opens the database picker, loads the new schema (`ds/schema`, `force`) and re-validates. Mappings are kept by id; **Remove what's missing** prunes those that don't exist in the new database.
-2. **Properties**: one row per **writable** schema property (title first), with an **Include** switch. When included, a segmented source control:
+2. **Properties**: one row per **writable** schema property (title first), with an **Include** switch. When included, a source picker (the kit's `SegmentedControl`: a radio group, ←/→ to move):
    - **From the page**: extractor dropdown of `compatibleExtractors(type)` (label + description as hint), optional **Fallback**, **Editable in popup** toggle. The `screenshot` extractor is never offered.
    - **Ask in popup**: optional default via `PropertyInput`, **Required** toggle (ask fields always show in the popup).
    - **Fixed value**: `PropertyInput`, required; **Editable in popup** toggle.

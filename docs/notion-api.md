@@ -15,8 +15,10 @@ Content-Type: application/json        (except the multipart file send)
 ```
 
 - `2026-03-11` is the latest API version. Compared with `2025-09-03`, it makes three changes. Append block children takes a `position` object instead of the `after` parameter. `in_trash` replaces `archived`. The `transcription` block is now called `meeting_notes`. None of these affect Sitecatch's v0 calls, but code must read `in_trash` and never `archived`. ([Upgrade guide](https://developers.notion.com/guides/get-started/upgrade-guide-2026-03-11), [Changes by version](https://developers.notion.com/reference/changes-by-version))
-- The token is an **internal connection API token**, starting with `ntn_`. It acts as a bot user. That bot sees only the pages and databases explicitly shared with it, plus their children. ([Internal connections](https://developers.notion.com/guides/get-started/internal-connections))
-- Only a **Workspace Owner** can create an internal connection. See [setup-guide.md](./setup-guide.md).
+- Sitecatch accepts two kinds of token (`AuthState.tokenKind`), both sent the same way as a Bearer token:
+  - **Personal access token** (`personal`, the default and recommended): acts **as the user** and sees everything the user can open. No per-database sharing is needed. Created in the Developer portal → Personal access tokens; shown only once; has an expiration.
+  - **Internal connection API token** (`connection`), starting with `ntn_`: acts as a bot user that sees only the pages and databases explicitly shared with it (••• → Connections), plus their children. Only a **Workspace Owner** can create one. ([Internal connections](https://developers.notion.com/guides/get-started/internal-connections))
+- See [setup-guide.md](./setup-guide.md) for creating either.
 
 ## Data sources model
 
@@ -35,7 +37,7 @@ A database with one data source shows up as one entry in the list. A database wi
 | Purpose | Request | Message type |
 | --- | --- | --- |
 | Validate token, get bot/workspace name | `GET /v1/users/me` | `auth/validate` |
-| List data sources shared with the connection | `POST /v1/search` with `{"filter": {"property": "object", "value": "data_source"}, "query"?: "…"}` (paginated) | `ds/list` |
+| List data sources the token can see | `POST /v1/search` with `{"filter": {"property": "object", "value": "data_source"}, "query"?: "…"}` (paginated) | `ds/list` |
 | Read a data source schema | `GET /v1/data_sources/{id}` | `ds/schema` |
 | Find duplicates by URL | `POST /v1/data_sources/{id}/query` with a filter on the dedupe property | `dup/check` |
 | Create a file upload | `POST /v1/file_uploads` with `{"filename": "…jpg", "content_type": "image/jpeg"}` | `save/start` |
@@ -47,9 +49,10 @@ References: [Retrieve your token's bot user](https://developers.notion.com/refer
 
 Notes:
 
-- `GET /v1/users/me` works whatever the connection's user-information capability is, so "No user information" is enough. The response includes `bot.workspace_name` and `bot.workspace_limits.max_file_upload_size_in_bytes`. The client can read the upload limit from there instead of hard-coding it.
+- `GET /v1/users/me` works whatever the connection's user-information capability is, so "No user information" is enough. The response includes `bot.workspace_name` and `bot.workspace_limits.max_file_upload_size_in_bytes`. The client reads the upload limit from there; it is returned as `maxFileUploadBytes` by `auth/validate` / `auth/status` and stored in `AuthState.maxFileUploadBytes` (default 5 MiB when absent).
 - Page `properties` can be keyed by property **name or id**. Sitecatch always keys by **id**, so renaming a property doesn't break a preset ([ADR 0006](./decisions/0006-map-properties-by-id.md)).
-- Search returns only objects shared with the connection. An empty result almost always means nothing has been shared yet (see [setup-guide.md](./setup-guide.md#cant-see-your-database)).
+- Search returns only objects the token can see. For an internal connection, an empty result almost always means nothing has been shared yet; for a personal access token, it usually means the wrong workspace (see [setup-guide.md](./setup-guide.md#cant-see-your-database)).
+- Duplicate detection filters `POST …/query` on the dedupe property by its type: `{"property": id, "url": {"equals": …}}` for `url` properties (`rich_text` / `title` use the same shape with their own key), OR-ing the normalized and the raw URL. The `url` filter's exact-match behavior is still to be verified against a real workspace.
 
 ## File upload flow (screenshots)
 
@@ -143,20 +146,19 @@ Notion errors are mapped to `AppError` (`src/lib/errors.ts`). Each message says 
 | --- | --- | --- | --- |
 | No token stored | `no-token` | `open-setup` | "Connect Sitecatch to Notion first." |
 | Host permission for api.notion.com missing | `no-host-permission` | `grant-permission` | "Sitecatch needs permission to reach api.notion.com. Click Grant access." |
-| 401 `unauthorized` | `invalid-token` | `open-setup` | "Notion rejected your token. It may have been revoked or mistyped. Paste a new token in setup." |
-| 404 `object_not_found` | `db-not-shared` | `reshare-db` | "Sitecatch can't see this database. In Notion, open it → ••• → Connections → add Sitecatch." |
-| 403 `restricted_resource` (permission) | `db-not-shared` | `reshare-db` | "Sitecatch doesn't have permission here. Check that the connection has Read, Update and Insert content, and that the database is shared." |
-| 403 `restricted_resource` (Free workspace block limit) | `validation` | — | Shows Notion's message: the workspace has used all its free blocks, so upgrade or ask the owner. ([Workspace block limits](https://developers.notion.com/reference/workspace-block-limits)) |
+| 401 `unauthorized` | `invalid-token` | `open-setup` | "Notion didn't accept your token. It may be mistyped, expired or revoked. Open setup and paste a new token." |
+| 404 `object_not_found` | `db-not-shared` | `reshare-db` | "Sitecatch can't access this database. Internal connection: ••• → Connections → add your Sitecatch connection. Personal access token: make sure you can open it." The action opens options `#/setup`. |
+| 403 (any, incl. `restricted_resource`) | `missing-capability` | `open-setup` | "Notion says Sitecatch isn't allowed to do this. In the Developer portal, enable reading, updating and inserting content (PAT: also check you can edit this database)." |
 | 400 `validation_error` | `validation` | `edit-preset` | "Notion rejected a property value: <Notion message>. Check the preset." |
 | 409 `conflict_error` | `network` | `retry` | "Notion couldn't save right now. Try again." |
 | 429 / 529 after retries | `rate-limited` | `retry` | "Notion is busy. Wait a minute and try again." |
 | 5xx, timeout, offline | `network` | `retry` | "Couldn't reach Notion. Check your connection and try again." After a failed create: "It may have been saved. Reopen Sitecatch to check." |
-| Screenshot over the limit after downscaling | `upload-too-large` | — | Not a save failure: the background recompresses to `maxFileUploadBytes`, and if it still doesn't fit, saves the page without the screenshot (logged warning). |
+| Screenshot over the limit after downscaling | `upload-too-large` | — | Not a save failure: the background recompresses to `maxFileUploadBytes`, and if it still doesn't fit, saves the page without the screenshot (warning in `JobState.warnings`, shown in the popup). |
 | Schema doesn't match the preset | `preset-invalid` | `edit-preset` | "Your database changed: <issue>. Fix the preset to continue." |
 | Anything else | `unknown` | `retry` | "Something went wrong. Try again." |
 
-Both 403 rows have the same status code; the client tells them apart by the message text. See [Open questions](#open-questions).
+The `committed_resource_id` case is handled before this table: an error response to `POST /v1/pages` carrying `additional_data.committed_resource_id` is treated as a successful create (see [Rate limits and retry policy](#rate-limits-and-retry-policy)).
 
 ## Open questions
 
-- `AppErrorCode` has no code of its own for 403 `restricted_resource`. The table above maps it to `db-not-shared` (permission) or `validation` (block limit). A dedicated `forbidden` / `plan-limit` code would make the UI copy clearer. That is a contract change, so it goes through the orchestrator.
+- A 403 caused by a Free workspace's block limit is also reported as `missing-capability`; Notion's own message is kept in `detail`. A dedicated `plan-limit` code would make the copy clearer (contract change, via the orchestrator). ([Workspace block limits](https://developers.notion.com/reference/workspace-block-limits))

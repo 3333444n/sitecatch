@@ -34,6 +34,11 @@ export interface JobState {
   pageUrl?: string;
   /** Set when status === 'error'. */
   error?: AppError;
+  /**
+   * Set when status === 'done' and the page was saved with caveats (e.g. no
+   * screenshot, shortened or skipped properties). User-facing sentences.
+   */
+  warnings?: string[];
   presetName?: string;
   /** ISO 8601. */
   startedAt: string;

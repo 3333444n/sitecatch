@@ -522,10 +522,6 @@ code {
   flex-wrap: wrap;
 }
 
-.sco-flip .sc-icon {
-  transform: rotate(180deg);
-}
-
 .sco-confirm {
   display: inline-flex;
   gap: var(--sc-space-1);
@@ -613,41 +609,6 @@ code {
   display: flex;
   flex-direction: column;
   gap: var(--sc-space-3);
-}
-
-.sco-prop__source {
-  display: inline-flex;
-  align-self: flex-start;
-  flex-wrap: wrap;
-  padding: 2px;
-  gap: 2px;
-  background: var(--sc-color-bg-subtle);
-  border: 1px solid var(--sc-color-border);
-  border-radius: var(--sc-radius-md);
-}
-
-.sco-seg {
-  padding: var(--sc-space-1) var(--sc-space-3);
-  border-radius: var(--sc-radius-sm);
-  font-size: var(--sc-font-size-sm);
-  color: var(--sc-color-text-muted);
-  cursor: pointer;
-}
-
-.sco-seg:hover {
-  color: var(--sc-color-text);
-}
-
-.sco-seg--on {
-  background: var(--sc-color-surface);
-  color: var(--sc-color-text);
-  font-weight: var(--sc-font-weight-medium);
-  box-shadow: var(--sc-shadow-sm);
-}
-
-.sco-seg:focus-within {
-  outline: 2px solid var(--sc-color-focus);
-  outline-offset: 1px;
 }
 
 .sco-prop__fields {

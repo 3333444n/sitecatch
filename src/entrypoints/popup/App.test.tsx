@@ -8,10 +8,9 @@ import type { AnyRequest, JobState, Request, RequestType, Response } from '@/lib
 import { savePreset } from '@/lib/presets/storage';
 import { makeCapture, makePreset, resourcesSchema } from '@/lib/presets/testing';
 import type { Mapping, Preset } from '@/lib/presets/types';
-import { jobItem } from '@/lib/storage/items';
+import { jobItem, lastJobItem } from '@/lib/storage/items';
 import { getLastPresetId, setLastPresetId } from '@/lib/storage/settings';
 import { App } from './App';
-import { lastJobItem } from './lastJob';
 
 vi.mock('@/lib/messaging/client', () => ({ sendRequest: vi.fn() }));
 const send = vi.mocked(sendRequest);
@@ -324,7 +323,7 @@ describe('saving', () => {
 
   const routing: [NonNullable<AppError['action']>, string, RegExp][] = [
     ['open-setup', 'Open setup', /#\/setup$/],
-    ['reshare-db', 'How to share', /#\/help$/],
+    ['reshare-db', 'How to share', /#\/setup$/],
     ['edit-preset', 'Edit preset', /#\/presets\/preset-1$/],
   ];
 

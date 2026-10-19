@@ -31,16 +31,25 @@ describe('validatePreset', () => {
         'phone:missing:true',
       ]),
     );
-    // dedupe + mapping for p%3Aurl both reported as missing
-    expect(issues.filter((i) => i.propertyId === 'p%3Aurl')).toHaveLength(2);
+    // dedupe (non-blocking) + mapping (blocking) for p%3Aurl both reported as missing
+    const urlIssues = issues.filter((i) => i.propertyId === 'p%3Aurl');
+    expect(urlIssues).toHaveLength(2);
+    expect(urlIssues.map((i) => i.blocking).sort()).toEqual([false, true]);
+    expect(urlIssues.find((i) => !i.blocking)?.detail).toMatch(/^Duplicate check is off:/);
     // the files mapping and the screenshot target both fail
     expect(issues.filter((i) => i.propertyId === 'shots')).toHaveLength(2);
     expect(issues.find((i) => i.propertyId === 'fav')?.detail).toContain("can't write");
   });
 
-  it('flags a dedupe property with an unusable type', () => {
+  it('flags a dedupe property with an unusable type without blocking', () => {
     const issues = validatePreset(makePreset({ dedupe: { propertyId: 'rating' } }), resourcesSchema);
-    expect(issues).toEqual([expect.objectContaining({ propertyId: 'rating', kind: 'type-changed', blocking: true })]);
+    expect(issues).toEqual([expect.objectContaining({ propertyId: 'rating', kind: 'type-changed', blocking: false })]);
+    expect(issues[0]?.detail).toMatch(/^Duplicate check is off:/);
+  });
+
+  it('flags a deleted dedupe property without blocking', () => {
+    const issues = validatePreset(makePreset({ dedupe: { propertyId: 'gone' } }), resourcesSchema);
+    expect(issues).toEqual([expect.objectContaining({ propertyId: 'gone', kind: 'missing', blocking: false })]);
   });
 
   it('flags a screenshot files property that was deleted', () => {
@@ -66,7 +75,12 @@ describe('validatePreset', () => {
     expect(isBlocking(issue(false))).toBe(false);
     const issues = validatePreset(preset, resourcesChangedSchema);
     expect(issues.filter((i) => i.kind === 'renamed').every((i) => !i.blocking)).toBe(true);
-    expect(issues.filter((i) => i.kind === 'type-changed' || i.kind === 'missing').every((i) => i.blocking)).toBe(true);
+    const mappingIds = new Set(preset.mappings.map((m) => m.propertyId));
+    expect(
+      issues
+        .filter((i) => (i.kind === 'type-changed' || i.kind === 'missing') && !i.detail.startsWith('Duplicate check is off'))
+        .every((i) => i.blocking || !mappingIds.has(i.propertyId)),
+    ).toBe(true);
     const status = validatePreset(preset, resourcesChangedSchema).find((i) => i.propertyId === 'status');
     expect(status && isBlocking(status)).toBe(true);
   });

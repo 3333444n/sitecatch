@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and a user-supplied integration token. No backend.
+**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and a user-supplied token (a personal access token, or an internal connection token — Notion now calls integrations "connections"). No backend.
 
 ## Source of truth
 
@@ -13,11 +13,12 @@
 | `pnpm install` | Install deps (runs `wxt prepare`) |
 | `pnpm dev:firefox` / `pnpm dev` | Dev build with live reload (Firefox MV3 / Chrome) |
 | `pnpm build:firefox` / `pnpm build:chrome` | Production build into `.output/<browser>-mv3` |
-| `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips |
+| `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips (in `.output/`, gitignored) |
+| `pnpm icons` | Rasterize `assets/icon.svg` → `public/icon/*.png` |
 | `pnpm test` / `pnpm test:watch` | Vitest (happy-dom + WXT fake browser) |
 | `pnpm typecheck` | `wxt prepare && tsc --noEmit` |
 | `pnpm lint` | ESLint (flat config, typescript-eslint strict) |
-| `pnpm lint:ext` | `web-ext lint` on the Firefox build |
+| `pnpm lint:ext` | `web-ext lint` on the Firefox build (one known, harmless warning: `innerHTML` in Preact's `jsx-runtime`) |
 | `pnpm check` | typecheck + lint + test + build:firefox + lint:ext |
 
 Toolchain: Node 24 (`.nvmrc`), pnpm 10.

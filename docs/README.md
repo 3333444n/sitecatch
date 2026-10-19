@@ -6,7 +6,7 @@ These docs are the **source of truth** for Sitecatch. Code follows the docs, and
 
 | Doc | Contents |
 | --- | --- |
-| [setup-guide.md](./setup-guide.md) | Create the Notion connection, paste the token, share databases, first preset, troubleshooting |
+| [setup-guide.md](./setup-guide.md) | Create a personal access token (recommended) or internal connection, paste the token, share databases (connections only), first preset, troubleshooting, screenshots to capture |
 | [permissions-privacy.md](./permissions-privacy.md) | Each permission and why, data flow, what is stored where, token handling |
 | [ui-flows.md](./ui-flows.md) | Popup states, setup wizard, preset editor, settings, import/export |
 
@@ -22,4 +22,4 @@ These docs are the **source of truth** for Sitecatch. Code follows the docs, and
 | [roadmap.md](./roadmap.md) | v0 scope and later plans |
 | [decisions/](./decisions/README.md) | Architecture decision records (ADRs) |
 
-Start with [AGENTS.md](../AGENTS.md) for commands, workflow and code conventions. Images used by the docs live in [`images/`](./images/). Setup screenshots are marked `<!-- SCREENSHOT: setup-N -->` and stored as `images/setup-N.png`.
+Start with [AGENTS.md](../AGENTS.md) for commands, workflow and code conventions. Setup screenshots are marked `<!-- SCREENSHOT: setup-N -->` and stored once, as `public/setup/setup-N.png` (shown in the setup wizard and linked from the docs as `../public/setup/setup-N.png`). See the capture checklist in [setup-guide.md](./setup-guide.md#screenshots-to-capture).

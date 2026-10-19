@@ -33,8 +33,8 @@ describe('mapHttpError table', () => {
     message: RegExp;
   }[] = [
     { name: '401', status: 401, body: 'unauthorized', op: 'auth', code: 'invalid-token', action: 'open-setup', message: /token/ },
-    { name: '403 restricted_resource', status: 403, body: 'restricted_resource', op: 'create-page', code: 'missing-capability', action: 'open-setup', message: /Capabilities/ },
-    { name: '404 object_not_found', status: 404, body: 'object_not_found', op: 'data-source', code: 'db-not-shared', action: 'reshare-db', message: /••• → Connections → add your integration/ },
+    { name: '403 restricted_resource', status: 403, body: 'restricted_resource', op: 'create-page', code: 'missing-capability', action: 'open-setup', message: /enable reading, updating and inserting content/ },
+    { name: '404 object_not_found', status: 404, body: 'object_not_found', op: 'data-source', code: 'db-not-shared', action: 'reshare-db', message: /••• → Connections → add your Sitecatch connection/ },
     { name: '400 validation_error', status: 400, body: 'validation_error', op: 'create-page', code: 'validation', action: 'edit-preset', message: /should be a string/ },
     { name: '400 other code', status: 400, body: 'invalid_request_url', op: 'search', code: 'validation', action: undefined, message: /Invalid request URL/ },
     { name: '400 size on upload', status: 400, body: 'upload_too_large', op: 'upload', code: 'upload-too-large', action: undefined, message: /too large/ },

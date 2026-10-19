@@ -1001,6 +1001,56 @@ button.sc-steps__button:hover {
   color: var(--sc-color-danger);
 }
 
+/* ---------- Segmented control ---------- */
+
+.sc-segmented {
+  display: inline-flex;
+  align-self: flex-start;
+  flex-wrap: wrap;
+  padding: 2px;
+  gap: 2px;
+  background: var(--sc-color-bg-subtle);
+  border: 1px solid var(--sc-color-border);
+  border-radius: var(--sc-radius-md);
+}
+
+.sc-segmented__item {
+  padding: var(--sc-space-1) var(--sc-space-3);
+  border: 0;
+  border-radius: var(--sc-radius-sm);
+  background: none;
+  color: var(--sc-color-text-muted);
+  font: inherit;
+  font-size: var(--sc-font-size-sm);
+  cursor: pointer;
+}
+
+.sc-segmented--sm .sc-segmented__item {
+  padding: 2px var(--sc-space-2);
+  font-size: var(--sc-font-size-xs);
+}
+
+.sc-segmented__item:hover:not(:disabled) {
+  color: var(--sc-color-text);
+}
+
+.sc-segmented__item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sc-segmented__item:focus-visible {
+  outline: 2px solid var(--sc-color-focus);
+  outline-offset: 1px;
+}
+
+.sc-segmented__item--on {
+  background: var(--sc-color-surface);
+  color: var(--sc-color-text);
+  font-weight: var(--sc-font-weight-medium);
+  box-shadow: var(--sc-shadow-sm);
+}
+
 /* ---------- Tabs ---------- */
 
 .sc-tabs__list {

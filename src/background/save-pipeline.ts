@@ -26,7 +26,7 @@ import type {
 } from '@/lib/notion/types';
 import { buildPageExtras, buildProperties, DEFAULT_SCREENSHOT_NAME } from '@/lib/properties/build';
 import type { FormValues, Preset } from '@/lib/presets/types';
-import { validatePreset } from '@/lib/presets/validate';
+import { isDedupeCapable, validatePreset } from '@/lib/presets/validate';
 import type { CaptureResult } from '@/lib/extract/types';
 import type { AuthState, HistoryEntry } from '@/lib/storage/items';
 import { normalizeUrl, urlVariants } from '@/lib/url/normalize';
@@ -90,13 +90,19 @@ export function needsScreenshot(preset: Preset, values: FormValues): boolean {
   );
 }
 
-/** Copy of `values` with the dedupe property's URL normalized; also returns that URL. */
+/**
+ * Copy of `values` with the dedupe property's URL normalized; also returns that URL.
+ * When `schema` is given and the dedupe property is missing or has an unusable
+ * type, dedupe is off: values are left alone and `dedupeUrl` is null.
+ */
 export function normalizeDedupeValue(
   preset: Preset,
   values: FormValues,
+  schema?: DataSourceSchema,
 ): { values: FormValues; dedupeUrl: string | null } {
   const id = preset.dedupe.propertyId;
   if (id === null) return { values, dedupeUrl: null };
+  if (schema && !isDedupeCapable(schema, id)) return { values, dedupeUrl: null };
   const value = values[id];
   if (value?.kind !== 'text' || value.value.trim() === '') return { values, dedupeUrl: null };
   const normalized = normalizeUrl(value.value);
@@ -131,19 +137,19 @@ async function uploadScreenshot(
   const shot = capture.values.screenshot;
   const dataUrl = shot?.kind === 'image' ? shot.dataUrl : undefined;
   if (!dataUrl) {
-    return { warnings: ['There was no screenshot to attach, so the page was saved without it.'] };
+    return { warnings: ['Saved without screenshot: there was no screenshot to attach.'] };
   }
   const limit = auth.maxFileUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   let blob = dataUrlToBlob(dataUrl);
   if (blob === null) {
-    return { warnings: ['The screenshot couldn’t be read, so the page was saved without it.'] };
+    return { warnings: ['Saved without screenshot: the screenshot couldn’t be read.'] };
   }
   if (blob.size > limit) {
     const compressed = await deps.compress(dataUrl, { maxBytes: limit });
     if (!compressed.ok) {
       return {
         warnings: [
-          'The screenshot is larger than your Notion workspace allows, so the page was saved without it.',
+          'Saved without screenshot: too large for your Notion workspace even after compression.',
         ],
       };
     }
@@ -154,7 +160,7 @@ async function uploadScreenshot(
   if (uploaded.ok) return { uploadId: uploaded.data, warnings: [] };
   if (uploaded.error.code === 'upload-too-large') {
     return {
-      warnings: ['Notion said the screenshot is too large, so the page was saved without it.'],
+      warnings: ['Saved without screenshot: Notion said it is too large.'],
     };
   }
   return { warnings: [], error: uploaded.error };
@@ -228,8 +234,8 @@ async function save(
   const blocking = validatePreset(preset, schema).filter((i) => i.blocking);
   if (blocking.length > 0) return err(presetInvalidError(preset, blocking.map((i) => i.detail)));
 
-  // 2. Normalize the dedupe URL so re-saves are detected.
-  const { values, dedupeUrl } = normalizeDedupeValue(preset, request.values);
+  // 2. Normalize the dedupe URL so re-saves are detected (skipped when dedupe is off).
+  const { values, dedupeUrl } = normalizeDedupeValue(preset, request.values, schema);
   const warnings: string[] = [];
 
   // 3. Screenshot upload (once).
@@ -319,7 +325,11 @@ export async function runSavePipeline(
     }
     const { page, warnings } = outcome.data;
     if (warnings.length > 0) console.warn('[sitecatch] save finished with warnings:', warnings);
-    await deps.updateJob(jobId, { status: 'done', pageUrl: page.url });
+    await deps.updateJob(jobId, {
+      status: 'done',
+      pageUrl: page.url,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    });
     // The page is saved; history and last-used preset are best-effort.
     const preset = outcome.preset;
     if (preset) {

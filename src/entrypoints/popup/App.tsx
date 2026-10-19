@@ -20,7 +20,7 @@ import { Banner, Button, ErrorBanner, Icon, Skeleton } from '@/ui/components';
 import { CaptureForm, isRequiredMapping, isVisibleMapping, propertyFor } from './CaptureForm';
 import { DuplicateBanner, sortMatches } from './DuplicateBanner';
 import { isTerminal, trackJob } from './job';
-import { lastJobItem, type LastJobRecord } from './lastJob';
+import { lastJobItem, type LastJobRecord } from '@/lib/storage/items';
 import { closePopup, OPTIONS_ROUTES, openInNewTab, openOptions, requestNotionPermission } from './nav';
 import { NoPresets, NoSetup } from './NoSetup';
 import { PageHeader } from './PageHeader';
@@ -62,7 +62,7 @@ type SaveState =
       startedAt: number;
       dbName: string;
     }
-  | { kind: 'done'; pageUrl?: string; dbName: string }
+  | { kind: 'done'; pageUrl?: string; dbName: string; warnings?: string[] }
   | { kind: 'error'; error: AppError; mode: SaveMode };
 
 async function activeTab(): Promise<TabInfo> {
@@ -126,7 +126,7 @@ export function App() {
     stopTracking.current = trackJob(
       jobId,
       (job) => {
-        if (job.status === 'done') setSave({ kind: 'done', pageUrl: job.pageUrl, dbName });
+        if (job.status === 'done') setSave({ kind: 'done', pageUrl: job.pageUrl, dbName, warnings: job.warnings });
         else if (job.status === 'error') setSave({ kind: 'error', error: job.error ?? LOST_JOB, mode });
         else {
           const status = job.status;
@@ -418,10 +418,8 @@ export function App() {
           return;
         }
         case 'open-setup':
-          void openOptions(OPTIONS_ROUTES.setup);
-          return;
         case 'reshare-db':
-          void openOptions(OPTIONS_ROUTES.help);
+          void openOptions(OPTIONS_ROUTES.setup);
           return;
         case 'edit-preset':
           void openOptions(preset ? OPTIONS_ROUTES.preset(preset.id) : OPTIONS_ROUTES.presets);
@@ -519,7 +517,7 @@ export function App() {
     return (
       <main class="sc-popup popup">
         {header}
-        <Saved dbName={save.dbName} pageUrl={save.pageUrl} onSaveAnother={resetAfterSave} onClose={closePopup} />
+        <Saved dbName={save.dbName} pageUrl={save.pageUrl} warnings={save.warnings} onSaveAnother={resetAfterSave} onClose={closePopup} />
       </main>
     );
   }
