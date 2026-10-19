@@ -4,11 +4,11 @@
  * All persisted state, defined with WXT's typed storage items.
  *   local:   device-only (token, settings, history) — the token NEVER goes to sync.
  *   sync:    presets (one item per preset to stay under the 8 KB/item quota) + index.
- *   session: in-memory per browser session (save jobs, schema cache).
+ *   session: in-memory per browser session (save jobs, schema cache, popup's last job).
  */
 import { storage } from 'wxt/utils/storage';
 import type { DataSourceSchema } from '@/lib/notion/types';
-import type { JobState } from '@/lib/messaging/protocol';
+import type { JobState, SaveMode } from '@/lib/messaging/protocol';
 import type { Preset } from '@/lib/presets/types';
 
 /**
@@ -99,3 +99,17 @@ export function schemaCacheItem(dataSourceId: string) {
     fallback: null,
   });
 }
+
+/** The popup's most recent save job, so a reopened popup can resume showing it. */
+export interface LastJobRecord {
+  jobId: string;
+  presetId: string;
+  /** URL of the tab that was being saved. */
+  url: string;
+  mode: SaveMode;
+}
+
+/** `session:popup:lastJob` — written by the popup when a save starts, cleared when it's dismissed. */
+export const lastJobItem = storage.defineItem<LastJobRecord | null>('session:popup:lastJob', {
+  fallback: null,
+});

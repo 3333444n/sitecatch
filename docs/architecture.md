@@ -179,6 +179,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 | `sync` | `sync:preset:<id>` | `Preset \| null` | One item per preset (8 KB per-item quota, see [ADR 0005](./decisions/0005-presets-in-storage-sync.md)). |
 | `session` | `session:job:<id>` | `JobState \| null` | Save job status, so it survives popup close and background restarts within the browser session. |
 | `session` | `session:schema:<dataSourceId>` | `CachedSchema \| null` | Schema cache with `fetchedAt`. Pass `force` to refresh. |
+| `session` | `session:popup:lastJob` | `LastJobRecord \| null` | The popup's most recent save (`{ jobId, presetId, url, mode }`), so a reopened popup can resume showing it. |
 
 `storage.session` is in-memory and cleared when the browser closes. Screenshots are never written to storage. They travel inside `CaptureResult` in the `save/start` message.
 

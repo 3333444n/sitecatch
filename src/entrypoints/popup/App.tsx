@@ -20,7 +20,7 @@ import { Banner, Button, ErrorBanner, Icon, Skeleton } from '@/ui/components';
 import { CaptureForm, isRequiredMapping, isVisibleMapping, propertyFor } from './CaptureForm';
 import { DuplicateBanner, sortMatches } from './DuplicateBanner';
 import { isTerminal, trackJob } from './job';
-import { lastJobItem, type LastJobRecord } from './lastJob';
+import { lastJobItem, type LastJobRecord } from '@/lib/storage/items';
 import { closePopup, OPTIONS_ROUTES, openInNewTab, openOptions, requestNotionPermission } from './nav';
 import { NoPresets, NoSetup } from './NoSetup';
 import { PageHeader } from './PageHeader';
