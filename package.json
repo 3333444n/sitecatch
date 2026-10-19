@@ -5,6 +5,14 @@
   "description": "Collect websites into your Notion databases.",
   "type": "module",
   "license": "MIT",
+  "homepage": "https://github.com/3333444n/sitecatch#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/3333444n/sitecatch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/3333444n/sitecatch/issues"
+  },
   "packageManager": "pnpm@10.34.4",
   "engines": {
     "node": ">=24"

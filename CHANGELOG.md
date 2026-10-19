@@ -19,4 +19,4 @@ First release (install from source; store listings to follow).
 - Settings: capture delay, JPEG quality, Notion account, recent saves.
 - Sitecatch icon.
 
-[0.1.0]: https://github.com/sitecatch/sitecatch/releases/tag/v0.1.0
+[0.1.0]: https://github.com/3333444n/sitecatch/releases/tag/v0.1.0

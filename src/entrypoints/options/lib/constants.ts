@@ -1,10 +1,7 @@
 /** Links and copy constants used across the options page. */
 
-/**
- * Base URL of the docs on GitHub. Placeholder until the public repo exists;
- * update it (one place) when the repository is created.
- */
-export const DOCS_BASE_URL = 'https://github.com/sitecatch/sitecatch/blob/main/docs/';
+/** Base URL of the docs on GitHub (https://github.com/3333444n/sitecatch). */
+export const DOCS_BASE_URL = 'https://github.com/3333444n/sitecatch/blob/main/docs/';
 
 export function docsUrl(page: string, anchor?: string): string {
   return `${DOCS_BASE_URL}${page}${anchor ? `#${anchor}` : ''}`;
