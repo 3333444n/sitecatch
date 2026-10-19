@@ -31,6 +31,7 @@ pnpm dev:firefox   # or: pnpm dev (Chrome)
 - Add an extractor: [docs/extractors.md](docs/extractors.md#adding-an-extractor)
 - Testing approach and manual checklist: [docs/testing.md](docs/testing.md)
 - Change the icon: edit `assets/icon.svg`, then `pnpm icons`
+- Release a signed Firefox build (maintainer): [docs/releasing.md](docs/releasing.md)
 - Setup screenshots: `public/setup/setup-N.png` ([capture checklist](docs/setup-guide.md#screenshots-to-capture))
 
 ## Code of conduct

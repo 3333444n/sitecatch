@@ -2,6 +2,16 @@
 
 All notable changes to Sitecatch are documented here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- `pnpm sign:firefox`: builds and signs the Firefox `.xpi` on AMO's unlisted channel. It reads the AMO keys from the environment or `.env.local` (template: `.env.example`), never prints them, and supports `--dry-run`. Guide: [docs/releasing.md](docs/releasing.md).
+
+### Changed
+
+- The Firefox add-on id `sitecatch@sitecatch.app` is final. v0.1.0 was signed under it on AMO's unlisted channel (2026-10-18).
+
 ## [0.1.0] - 2026-10-18
 
 First release (install from source; store listings to follow).
@@ -19,4 +29,5 @@ First release (install from source; store listings to follow).
 - Settings: capture delay, JPEG quality, Notion account, recent saves.
 - Sitecatch icon.
 
+[Unreleased]: https://github.com/3333444n/sitecatch/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/3333444n/sitecatch/releases/tag/v0.1.0
