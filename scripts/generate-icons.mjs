@@ -58,4 +58,5 @@ function png(size) {
 
 mkdirSync('public/icon', { recursive: true });
 for (const s of SIZES) writeFileSync(`public/icon/${s}.png`, png(s));
+// eslint-disable-next-line no-console -- CLI script output
 console.log(`Wrote ${SIZES.length} icons to public/icon/`);
