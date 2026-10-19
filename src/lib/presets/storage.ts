@@ -108,10 +108,15 @@ export async function reorderPresets(ids: string[]): Promise<void> {
 
 /** Calls `cb` with the full ordered list whenever any preset or the index changes. Returns unwatch. */
 export function watchPresets(cb: (presets: Preset[]) => void): () => void {
+  let seq = 0;
   const listener = (changes: Record<string, unknown>, area: string) => {
     if (area !== 'sync') return;
     if (!Object.keys(changes).some((k) => k === INDEX_KEY || k.startsWith(PRESET_KEY_PREFIX))) return;
-    void listPresets().then(cb);
+    const mine = ++seq;
+    void listPresets().then((presets) => {
+      // Drop stale reads when several changes land in quick succession.
+      if (mine === seq) cb(presets);
+    });
   };
   browser.storage.onChanged.addListener(listener);
   return () => {
