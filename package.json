@@ -1,0 +1,45 @@
+{
+  "name": "sitecatch",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Collect websites into your Notion databases.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.34.4",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox --mv3",
+    "build:firefox": "wxt build -b firefox --mv3",
+    "build:chrome": "wxt build -b chrome",
+    "zip:firefox": "wxt zip -b firefox --mv3",
+    "zip:chrome": "wxt zip -b chrome",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "wxt prepare && tsc --noEmit",
+    "lint": "eslint .",
+    "lint:ext": "web-ext lint -s .output/firefox-mv3",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build:firefox && pnpm lint:ext",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@preact/signals": "^2.11.3",
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@eslint/js": "^10.0.1",
+    "@preact/preset-vite": "^2.10.6",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "happy-dom": "^21.0.3",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "web-ext": "^10.8.0",
+    "wxt": "^0.21.4"
+  }
+}
