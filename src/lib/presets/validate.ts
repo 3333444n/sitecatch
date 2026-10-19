@@ -7,26 +7,12 @@ import type { DataSourceSchema, PropertySchema } from '@/lib/notion/types';
 import { isCompatible, isWritableType } from './compat';
 import type { FormValue, Mapping, Preset, PresetIssue } from './types';
 
-/**
- * `PresetIssue` plus whether it blocks saving. Structurally a `PresetIssue`,
- * so it can be passed anywhere one is expected.
- */
-export interface ValidationIssue extends PresetIssue {
-  blocking: boolean;
-}
-
 /** Property types usable for duplicate detection. */
 export const DEDUPE_PROPERTY_TYPES = ['url', 'rich_text', 'title'] as const;
 
-/**
- * Whether the issue must be fixed before saving. Uses the `blocking` flag set
- * by `validatePreset`; for bare `PresetIssue`s falls back to the kind
- * (option-missing then counts as non-blocking since select options are auto-created).
- */
+/** Whether the issue must be fixed before saving (reads `PresetIssue.blocking`). */
 export function isBlocking(issue: PresetIssue): boolean {
-  const flag = (issue as Partial<ValidationIssue>).blocking;
-  if (typeof flag === 'boolean') return flag;
-  return issue.kind === 'missing' || issue.kind === 'type-changed';
+  return issue.blocking;
 }
 
 function optionNames(value: FormValue | undefined): string[] {
@@ -42,7 +28,7 @@ function configuredValue(mapping: Mapping): FormValue | undefined {
   return undefined;
 }
 
-function validateMapping(mapping: Mapping, prop: PropertySchema | undefined): ValidationIssue[] {
+function validateMapping(mapping: Mapping, prop: PropertySchema | undefined): PresetIssue[] {
   const label = `“${mapping.propertyName}”`;
   if (!prop) {
     return [
@@ -54,7 +40,7 @@ function validateMapping(mapping: Mapping, prop: PropertySchema | undefined): Va
       },
     ];
   }
-  const issues: ValidationIssue[] = [];
+  const issues: PresetIssue[] = [];
   if (prop.name !== mapping.propertyName) {
     issues.push({
       propertyId: mapping.propertyId,
@@ -96,8 +82,8 @@ function validateMapping(mapping: Mapping, prop: PropertySchema | undefined): Va
   return issues;
 }
 
-export function validatePreset(preset: Preset, schema: DataSourceSchema): ValidationIssue[] {
-  const issues: ValidationIssue[] = preset.mappings.flatMap((m) =>
+export function validatePreset(preset: Preset, schema: DataSourceSchema): PresetIssue[] {
+  const issues: PresetIssue[] = preset.mappings.flatMap((m) =>
     validateMapping(m, schema.properties[m.propertyId]),
   );
 

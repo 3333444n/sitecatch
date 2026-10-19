@@ -106,6 +106,12 @@ export interface PresetIssue {
    * option-missing: a static/default select option no longer exists (will be created or must be fixed)
    */
   kind: 'missing' | 'renamed' | 'type-changed' | 'option-missing';
+  /**
+   * Whether the issue must be fixed before saving. missing/type-changed always
+   * block; renamed never does; option-missing blocks only for `status`
+   * (Notion can't create status options via the API).
+   */
+  blocking: boolean;
   /** User-facing explanation. */
   detail: string;
 }
