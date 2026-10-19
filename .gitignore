@@ -9,3 +9,4 @@ web-ext-artifacts
 coverage
 .DS_Store
 *.log
+.claude/worktrees/
