@@ -31,16 +31,19 @@ If there are no presets yet: "Create your first preset" → opens Options → Pr
 
 ### Capturing
 
-- **Preset picker** at the top, preselected with `local:lastPresetId`. Changing the preset re-runs schema validation and the duplicate check. The capture is reused.
-- Three requests run in parallel: `capture/run`, `ds/schema`, `dup/check`. Placeholder/skeleton rows are shown, with a short "Capturing…" label.
+- **Preset picker** at the top, preselected with `local:lastPresetId` (falls back to the first preset). Changing the preset stores it as the new `lastPresetId`, re-runs schema validation and the duplicate check, and re-resolves the form. The capture is reused, and the user's edits are kept for properties the new preset also shows with the same input kind (e.g. the title).
+- Three requests run in parallel: `capture/run`, `ds/schema`, `dup/check` (with the tab URL; the capture URL if the tab URL is unknown; skipped when the preset has no dedupe property). Skeletons are shown for the thumbnail and fields, and a polite live region announces "Capturing page…".
 - Capture waits for `readyState === 'complete'` plus the optional delay from Settings.
+- If `capture/run` fails, the error is shown with **Retry** and the form falls back to the tab's URL and title (like a restricted page).
 
 ### Form
 
 - Thumbnail of the screenshot, if the preset uses one, plus the page title/domain.
 - One field per **visible mapping**: every `ask` mapping, plus `extractor`/`static` mappings with `editableInPopup`. The input matches the property type (Text, Url, Number, Checkbox, Date, Select, MultiSelect with "create option", Status).
 - Pre-filled from extractors (primary → fallbacks), `ask.default`, or the static value.
-- `required` ask fields block **Save** until filled.
+- Mappings that aren't shown as fields (non-editable extractor/static) are listed in a compact read-only summary, e.g. "URL → https://example.com/…".
+- `required` ask fields block **Save** until filled; the footer says which fields are missing.
+- **Save** stays disabled while capturing, loading the schema, or checking for duplicates. Its label is "Save to *Database*" (or "Save as duplicate" when duplicates were found). **Ctrl/⌘ + Enter** saves from anywhere; the first editable field gets focus.
 - Capture warnings (e.g. "Screenshot was downscaled") appear as small notes.
 - **Preset issues** ([preset-model.md](./preset-model.md#validation)): blocking issues disable Save and show **Edit preset**. Non-blocking ones (renamed, select option will be created, dedupe skipped) show as a dismissible notice.
 
@@ -54,15 +57,17 @@ Shown above the form when `dup/check` returns matches: "Already saved in *Resour
 | **Save as duplicate** | `save/start` with `mode: {kind:'duplicate'}`. Creates a new page. |
 | **Open existing** | Opens the existing page's Notion URL in a new tab. Saves nothing. |
 
-With several matches, the banner shows the most recently edited one and a count.
+With several matches, the banner shows the most recently edited one and a count. The footer **Save** button becomes **Save as duplicate**.
 
 ### Saving
 
-`save/start` returns a `jobId`. The popup polls `job/get` and shows the step: *Uploading screenshot…* (`uploading`), then *Saving to Notion…* (`creating`). The user may close the popup. The save continues in the background and the toolbar badge shows ✓ (done) or ! (error).
+`save/start` returns a `jobId`. The popup watches the job in `storage.session` (`watchJob`) and polls `job/get` every second as a fallback, showing the step: *Uploading screenshot…* (`uploading`), then *Saving to Notion…* (`creating`). After 20 s it adds "Still working… it continues in the background — you can close this popup." The user may close the popup at any time; that only stops watching. The save continues in the background and the toolbar badge shows ✓ (done) or ! (error).
+
+The popup remembers its most recent job in `session:popup:lastJob` (`{ jobId, presetId, url, mode }`). Reopened on the same page, it shows that job's progress if it is still running, or its error if it failed.
 
 ### Success
 
-"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab). The entry is added to `local:history`. The popup can be closed. Reopening it on the same page shows the duplicate banner.
+"Saved to *Resources*" with an **Open in Notion** button (`JobState.pageUrl`, opens in a new tab), **Save with another preset** (back to the form, duplicate check re-run) and **Close**. The popup doesn't close by itself. The entry is added to `local:history`. Reopening it on the same page shows the duplicate banner.
 
 ### Error
 
@@ -70,11 +75,13 @@ The `AppError.message` in plain language, with a button for `action`:
 
 | `action` | Button |
 | --- | --- |
-| `open-setup` | Open setup |
-| `reshare-db` | How to share the database (opens setup step 4) |
-| `retry` | Try again (for a failed create, the duplicate check runs again first) |
-| `edit-preset` | Edit preset |
-| `grant-permission` | Grant access |
+| `open-setup` | Open setup (options `#/setup`) |
+| `reshare-db` | How to share (options `#/help`) |
+| `retry` | Retry (for a failed create, the duplicate check runs again first; if it now finds the page, the duplicate banner is shown instead of saving) |
+| `edit-preset` | Edit preset (options `#/presets/<id>`) |
+| `grant-permission` | Grant access (`permissions.request` for `https://api.notion.com/*`, called synchronously in the click handler; retries on success) |
+
+Buttons that open the options page open it in a new tab at that route and close the popup.
 
 A collapsible **Details** section shows `AppError.detail` (HTTP status, Notion code). It never shows the token.
 
