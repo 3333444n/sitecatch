@@ -1,0 +1,14 @@
+{
+  "object": "user",
+  "id": "16d84278-ab0e-484c-9bdd-b35da3bd8905",
+  "name": "Sitecatch",
+  "avatar_url": null,
+  "type": "bot",
+  "bot": {
+    "owner": { "type": "workspace", "workspace": true },
+    "workspace_id": "0c7a4c28-5b51-4f2a-9b0f-1d2f3c4b5a69",
+    "workspace_limits": { "max_file_upload_size_in_bytes": 5242880 },
+    "workspace_name": "Kicke's Workspace"
+  },
+  "request_id": "7c1f0c65-3a52-4a7b-8d6c-2b9b1a0a7e11"
+}

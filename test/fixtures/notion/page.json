@@ -1,0 +1,24 @@
+{
+  "object": "page",
+  "id": "59833787-2cf9-4fdf-8782-e53db20768a5",
+  "created_time": "2026-10-18T12:00:00.000Z",
+  "last_edited_time": "2026-10-18T12:00:00.000Z",
+  "created_by": { "object": "user", "id": "16d84278-ab0e-484c-9bdd-b35da3bd8905" },
+  "last_edited_by": { "object": "user", "id": "16d84278-ab0e-484c-9bdd-b35da3bd8905" },
+  "cover": { "type": "file", "file": { "url": "https://prod-files-secure.s3.us-west-2.amazonaws.com/cover.jpg", "expiry_time": "2026-10-18T13:00:00.000Z" } },
+  "icon": { "type": "external", "external": { "url": "https://example.com/favicon.ico" } },
+  "parent": { "type": "data_source_id", "data_source_id": "248104cd-477e-80af-bc30-000bd28de8f9", "database_id": "248104cd-477e-80fd-b757-e945d38000bd" },
+  "in_trash": false,
+  "is_locked": false,
+  "properties": {
+    "URL": { "id": "%3DkSb", "type": "url", "url": "https://example.com/" },
+    "Name": {
+      "id": "title",
+      "type": "title",
+      "title": [{ "type": "text", "text": { "content": "Example Domain", "link": null }, "plain_text": "Example Domain", "href": null }]
+    }
+  },
+  "url": "https://www.notion.so/Example-Domain-598337872cf94fdf8782e53db20768a5",
+  "public_url": null,
+  "request_id": "c3d4e5f6-0000-4000-8000-000000000004"
+}

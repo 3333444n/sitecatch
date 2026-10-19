@@ -1,0 +1,15 @@
+{
+  "object": "file_upload",
+  "id": "a3f9d3e2-1abc-42de-b904-badc0ffee000",
+  "created_time": "2026-10-18T12:00:00.000Z",
+  "created_by": { "id": "16d84278-ab0e-484c-9bdd-b35da3bd8905", "type": "bot" },
+  "last_edited_time": "2026-10-18T12:00:00.000Z",
+  "in_trash": false,
+  "expiry_time": "2026-10-18T13:00:00.000Z",
+  "upload_url": "https://api.notion.com/v1/file_uploads/a3f9d3e2-1abc-42de-b904-badc0ffee000/send",
+  "status": "pending",
+  "filename": "screenshot.jpg",
+  "content_type": "image/jpeg",
+  "content_length": null,
+  "request_id": "e5f6a7b8-0000-4000-8000-000000000006"
+}
