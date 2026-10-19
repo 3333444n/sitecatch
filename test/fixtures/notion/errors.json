@@ -1,0 +1,12 @@
+{
+  "unauthorized": { "object": "error", "status": 401, "code": "unauthorized", "message": "API token is invalid.", "request_id": "11111111-0000-4000-8000-000000000001" },
+  "restricted_resource": { "object": "error", "status": 403, "code": "restricted_resource", "message": "Insufficient permissions for this endpoint.", "request_id": "11111111-0000-4000-8000-000000000002" },
+  "object_not_found": { "object": "error", "status": 404, "code": "object_not_found", "message": "Could not find data_source with ID: 248104cd-477e-80af-bc30-000bd28de8f9. Make sure the relevant pages and databases are shared with your integration.", "request_id": "11111111-0000-4000-8000-000000000003" },
+  "validation_error": { "object": "error", "status": 400, "code": "validation_error", "message": "body failed validation: body.properties.Type.select.name should be a string, instead was `42`.", "request_id": "11111111-0000-4000-8000-000000000004" },
+  "upload_too_large": { "object": "error", "status": 400, "code": "validation_error", "message": "The file size exceeds the limit of 5 MiB for this workspace.", "request_id": "11111111-0000-4000-8000-000000000005" },
+  "rate_limited": { "object": "error", "status": 429, "code": "rate_limited", "message": "You have been rate limited. Please try again in a few minutes.", "request_id": "11111111-0000-4000-8000-000000000006" },
+  "conflict_error": { "object": "error", "status": 409, "code": "conflict_error", "message": "Conflict occurred while saving. Please try again.", "request_id": "11111111-0000-4000-8000-000000000007" },
+  "internal_server_error": { "object": "error", "status": 500, "code": "internal_server_error", "message": "Unexpected error occurred.", "request_id": "11111111-0000-4000-8000-000000000008" },
+  "service_unavailable": { "object": "error", "status": 503, "code": "service_unavailable", "message": "Notion is unavailable, please try again later.", "request_id": "11111111-0000-4000-8000-000000000009" },
+  "invalid_request_url": { "object": "error", "status": 400, "code": "invalid_request_url", "message": "Invalid request URL.", "request_id": "11111111-0000-4000-8000-000000000010" }
+}

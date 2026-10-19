@@ -1,0 +1,72 @@
+{
+  "object": "data_source",
+  "id": "248104cd-477e-80af-bc30-000bd28de8f9",
+  "title": [{ "type": "text", "text": { "content": "Resources", "link": null }, "plain_text": "Resources", "href": null }],
+  "description": [],
+  "parent": { "type": "database_id", "database_id": "248104cd-477e-80fd-b757-e945d38000bd" },
+  "database_parent": { "type": "page_id", "page_id": "255104cd-477e-808c-b279-d39ab803a7d2" },
+  "is_inline": false,
+  "database_type": null,
+  "in_trash": false,
+  "created_time": "2026-03-20T10:00:00.000Z",
+  "last_edited_time": "2026-10-01T09:30:00.000Z",
+  "created_by": { "object": "user", "id": "ee5f0f84-409a-440f-983a-a5315961c6e4" },
+  "last_edited_by": { "object": "user", "id": "ee5f0f84-409a-440f-983a-a5315961c6e4" },
+  "properties": {
+    "Name": { "id": "title", "name": "Name", "description": null, "type": "title", "title": {} },
+    "URL": { "id": "%3DkSb", "name": "URL", "description": null, "type": "url", "url": {} },
+    "Description": { "id": "bLc%7B", "name": "Description", "description": null, "type": "rich_text", "rich_text": {} },
+    "Type": {
+      "id": "Xq%3Aw",
+      "name": "Type",
+      "description": null,
+      "type": "select",
+      "select": {
+        "options": [
+          { "id": "e28f74fc-83a7-4469-8435-27eb18f9f9de", "name": "Article", "color": "blue", "description": null },
+          { "id": "6132d771-b283-4cd9-ba44-b1ed30477c7f", "name": "Tool", "color": "green", "description": null }
+        ]
+      }
+    },
+    "Tags": {
+      "id": "flsb",
+      "name": "Tags",
+      "description": null,
+      "type": "multi_select",
+      "multi_select": {
+        "options": [
+          { "id": "5de29601-9c24-4b04-8629-0bca891c5120", "name": "design", "color": "purple", "description": null },
+          { "id": "b5c3a4e9-5d0e-4c2b-9b1e-9a7e1f2c3d4e", "name": "dev", "color": "default", "description": null }
+        ]
+      }
+    },
+    "Status": {
+      "id": "Ys%5Ee",
+      "name": "Status",
+      "description": null,
+      "type": "status",
+      "status": {
+        "options": [
+          { "id": "034ece9a-384d-4d1f-97f7-7f685b29ae9b", "name": "Not started", "color": "default", "description": null },
+          { "id": "330aeafb-598c-4e1c-bc13-1148aa5963d3", "name": "In progress", "color": "blue", "description": null },
+          { "id": "497e64fb-01e2-41ef-ae2d-8a87a3bb51da", "name": "Done", "color": "green", "description": null }
+        ],
+        "groups": [
+          { "id": "b9d42483-e576-4858-a26f-ed940a5f678f", "name": "To-do", "color": "gray", "option_ids": ["034ece9a-384d-4d1f-97f7-7f685b29ae9b"] }
+        ]
+      }
+    },
+    "Screenshot": { "id": "Fi%3Fs", "name": "Screenshot", "description": null, "type": "files", "files": {} },
+    "Read": { "id": "chk1", "name": "Read", "description": null, "type": "checkbox", "checkbox": {} },
+    "Rating": { "id": "num1", "name": "Rating", "description": null, "type": "number", "number": { "format": "number" } },
+    "Saved": { "id": "dt%40a", "name": "Saved", "description": null, "type": "date", "date": {} },
+    "Created": { "id": "ct11", "name": "Created", "description": null, "type": "created_time", "created_time": {} },
+    "Score": { "id": "fx01", "name": "Score", "description": null, "type": "formula", "formula": { "expression": "1" } },
+    "Place": { "id": "plc1", "name": "Place", "description": null, "type": "place", "place": {} }
+  },
+  "icon": { "type": "emoji", "emoji": "📚" },
+  "cover": null,
+  "url": "https://www.notion.so/248104cd477e80fdb757e945d38000bd",
+  "public_url": null,
+  "request_id": "b2c3d4e5-0000-4000-8000-000000000003"
+}
