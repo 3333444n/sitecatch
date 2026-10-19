@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [WxtVitest()],
   test: {
     environment: 'happy-dom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     restoreMocks: true,
   },
 });

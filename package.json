@@ -31,7 +31,8 @@
     "lint:ext": "web-ext lint -s .output/firefox-mv3",
     "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build:firefox && pnpm lint:ext",
     "postinstall": "wxt prepare",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "sign:firefox": "node scripts/sign-firefox.mjs"
   },
   "dependencies": {
     "@preact/signals": "^2.11.3",
