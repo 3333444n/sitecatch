@@ -1,4 +1,6 @@
 /**
+ * CONTRACT FILE — shared across all modules. Change only via the orchestrator.
+ *
  * Single source of the extractor → Notion property compatibility table.
  * Pure data, no browser/DOM deps: used by the extractor definitions
  * (`ExtractorDef.compatible`) and by the preset editor (src/lib/presets/compat.ts).
