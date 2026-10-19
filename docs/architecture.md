@@ -41,7 +41,7 @@ flowchart LR
 | Popup | `src/entrypoints/popup/` | Preset picker, capture form, duplicate banner, save status. Short-lived: closes whenever the user clicks away. |
 | Options page | `src/entrypoints/options/` | Setup wizard (opens on install), presets list/editor, settings, import/export, help. |
 | Background | `src/entrypoints/background.ts`, `src/background/` | Message `router.ts` dispatches to one handler per request type (`handlers/`). `save-pipeline.ts` runs saves. It owns the token, all Notion calls, capture and storage writes for jobs. |
-| In-page probe | `src/lib/capture/` | A function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
+| In-page probe | `src/lib/extract/probe.ts` | A self-contained function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
 | Notion client | `src/lib/notion/` | Plain `fetch`, `Notion-Version: 2026-03-11`, rate-limit queue, retries, multipart upload, error mapping. See [notion-api.md](./notion-api.md). |
 | Extractors | `src/lib/extract/` | Registry of pure `ExtractorDef.extract(raw, ctx)` functions (`needsPage: false` ones run even when the page can't be probed). `compat-table.ts` holds the single extractor-output → property-type table. See [extractors.md](./extractors.md). |
 | Capture | `src/lib/capture/` | Restricted-URL detection, screenshot (`tabs.captureVisibleTab`, JPEG, downscale). |
