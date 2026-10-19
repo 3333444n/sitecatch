@@ -86,6 +86,7 @@ export function DatabaseList({
         </div>
         <Button
           variant="secondary"
+          icon="refresh"
           loading={loading && items !== null}
           loadingLabel="Refreshing…"
           onClick={() => {

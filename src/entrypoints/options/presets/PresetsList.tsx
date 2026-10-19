@@ -167,8 +167,7 @@ export function PresetsList() {
                 </span>
                 <div class="sco-preset__actions">
                   <IconButton
-                    icon="chevron-down"
-                    class="sco-flip"
+                    icon="chevron-up"
                     label={`Move ${p.name} up`}
                     size="sm"
                     disabled={i === 0}

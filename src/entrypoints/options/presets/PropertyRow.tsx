@@ -1,7 +1,7 @@
 /** One writable schema property in the preset editor: include toggle + source config. */
 import type { ExtractorId } from '@/lib/extract/types';
 import type { FormValue, Mapping, PresetIssue } from '@/lib/presets/types';
-import { Badge, Button, Field, Select, Toggle } from '@/ui/components';
+import { Badge, Button, Field, SegmentedControl, Select, Toggle } from '@/ui/components';
 import { PropertyInput } from '@/ui/property-inputs';
 import {
   availableSourceKinds,
@@ -86,23 +86,14 @@ export function PropertyRow({
 
       {mapping && !isScreenshotTarget && (
         <div class="sco-prop__body">
-          <div class="sco-prop__source" role="radiogroup" aria-label={`Where “${property.name}” gets its value`}>
-            {kinds.map((k) => (
-              <label key={k} class={`sco-seg${mapping.source.kind === k ? ' sco-seg--on' : ''}`}>
-                <input
-                  type="radio"
-                  class="sc-visually-hidden"
-                  name={`${rowId}-source`}
-                  value={k}
-                  checked={mapping.source.kind === k}
-                  onChange={() => {
-                    onChange(changeSourceKind(mapping, property, k));
-                  }}
-                />
-                {SOURCE_KIND_LABEL[k]}
-              </label>
-            ))}
-          </div>
+          <SegmentedControl
+            label={`Where “${property.name}” gets its value`}
+            value={mapping.source.kind}
+            options={kinds.map((k) => ({ value: k, label: SOURCE_KIND_LABEL[k] }))}
+            onChange={(k) => {
+              onChange(changeSourceKind(mapping, property, k));
+            }}
+          />
           <SourceEditor property={property} mapping={mapping} onChange={onChange} onUseAsScreenshotTarget={onUseAsScreenshotTarget} />
         </div>
       )}
