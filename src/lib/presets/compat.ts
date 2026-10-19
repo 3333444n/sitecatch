@@ -2,42 +2,26 @@
  * Compatibility matrix: which extractors may feed which Notion property types,
  * and which property types accept "ask" / "static" values.
  *
- * Defined locally (keyed by ExtractorId → ValueKind) so presets don't depend on
- * the extractor registry. Keep in sync with `ExtractorDef.output` in
- * src/lib/extract/ — a test there should assert the two agree.
+ * Single source: the kind → property-types table lives in
+ * src/lib/extract/compat-table.ts and each extractor's output kind comes from
+ * its `ExtractorDef` in the registry (pure modules, no browser deps).
  */
+import { VALUE_KIND_TARGETS } from '@/lib/extract/compat-table';
+import { listExtractors } from '@/lib/extract/registry';
 import type { ExtractorId, ValueKind } from '@/lib/extract/types';
 import type { NotionPropertyType, WritablePropertyType } from '@/lib/notion/types';
 import { WRITABLE_PROPERTY_TYPES } from '@/lib/notion/types';
 import type { FormValueKind } from './types';
 
-/** Output kind of every extractor. */
-export const EXTRACTOR_OUTPUT: Readonly<Record<ExtractorId, ValueKind>> = {
-  screenshot: 'image',
-  favicon: 'image',
-  ogImage: 'image',
-  title: 'text',
-  ogTitle: 'text',
-  metaDescription: 'text',
-  ogDescription: 'text',
-  selection: 'text',
-  domain: 'text',
-  url: 'url',
-  canonicalUrl: 'url',
-  fonts: 'list',
-  dateSaved: 'date',
-};
+export { VALUE_KIND_TARGETS };
 
-/** Property types each value kind may be written into. */
-export const VALUE_KIND_TARGETS: Readonly<Record<ValueKind, readonly WritablePropertyType[]>> = {
-  text: ['title', 'rich_text', 'select', 'multi_select'],
-  url: ['url', 'rich_text', 'title'],
-  list: ['multi_select', 'rich_text'],
-  date: ['date'],
-  image: ['files'],
-};
+/** Output kind of every extractor (derived from the registry). */
+export const EXTRACTOR_OUTPUT: Readonly<Record<ExtractorId, ValueKind>> = Object.fromEntries(
+  listExtractors().map((def) => [def.id, def.output]),
+) as Record<ExtractorId, ValueKind>;
 
-export const EXTRACTOR_IDS = Object.keys(EXTRACTOR_OUTPUT) as ExtractorId[];
+/** Every extractor id, in registry (UI) order. */
+export const EXTRACTOR_IDS: readonly ExtractorId[] = listExtractors().map((def) => def.id);
 
 export function isWritableType(type: NotionPropertyType): type is WritablePropertyType {
   return (WRITABLE_PROPERTY_TYPES as readonly string[]).includes(type);

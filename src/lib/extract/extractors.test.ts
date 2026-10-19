@@ -4,7 +4,7 @@ import { fontFamilies, splitFontStack } from './extractors/fonts';
 import { probeFixture } from './fixtures.test-helper';
 import { getExtractor, listExtractors, runExtractors } from './registry';
 import type { ExtractorId, ImageValue, RawPageData } from './types';
-import { COMPATIBLE_TYPES } from './util';
+import { VALUE_KIND_TARGETS } from './compat-table';
 
 const NOW = new Date('2026-10-18T12:34:56.000Z');
 
@@ -49,7 +49,7 @@ describe('registry', () => {
     for (const def of listExtractors()) {
       expect(def.label).not.toBe('');
       expect(def.description).not.toBe('');
-      expect(def.compatible).toEqual(COMPATIBLE_TYPES[def.output]);
+      expect(def.compatible).toEqual(VALUE_KIND_TARGETS[def.output]);
     }
   });
 
@@ -115,6 +115,11 @@ describe('registry', () => {
     const shot: ImageValue = { kind: 'image', dataUrl: 'data:image/jpeg;base64,AA' };
     const { values } = runExtractors(null, { now: NOW, screenshot: shot });
     expect(Object.keys(values).sort()).toEqual(['dateSaved', 'screenshot']);
+  });
+
+  it('marks only screenshot and dateSaved as not needing page data', () => {
+    const contextOnly = listExtractors().filter((d) => d.needsPage === false).map((d) => d.id);
+    expect(contextOnly.sort()).toEqual(['dateSaved', 'screenshot']);
   });
 
   it('honours `only`', () => {
@@ -183,7 +188,7 @@ describe('favicon', () => {
       raw({
         links: [
           { rel: 'mask-icon', href: 'https://example.com/mask.svg' },
-          { rel: 'icon', href: 'https://example.com/a.png', sizes: '16x16 48x48' } as RawPageData['links'][number],
+          { rel: 'icon', href: 'https://example.com/a.png', sizes: '16x16 48x48' },
         ],
       }),
     );
