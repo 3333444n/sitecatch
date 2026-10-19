@@ -1,13 +1,35 @@
 # Contributing to Sitecatch
 
-Thanks for your interest! The full contributor guide will live in [`/docs`](./docs/README.md) — start there.
+Thanks for helping! Short version below. Details live in [`/docs`](docs/README.md) and [AGENTS.md](AGENTS.md).
 
-Quick start:
+## Setup
+
+Node 24 (`.nvmrc`) and pnpm 10.
 
 ```sh
 pnpm install
-pnpm dev:firefox
-pnpm check   # must pass before opening a PR
+pnpm dev:firefox   # or: pnpm dev (Chrome)
 ```
 
-Conventions (branching, commits, code style) are described in [AGENTS.md](./AGENTS.md) and [docs/testing.md](./docs/testing.md).
+## Workflow
+
+- Never commit to `main`. Use a branch, ideally in its own worktree:
+  ```sh
+  git worktree add ../sitecatch-wt/<name> -b <type>/<name>   # e.g. feat/tech-extractor, fix/dup-check
+  ```
+- [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Keep commits small.
+- Run **`pnpm check`** before opening a PR or merging (typecheck, lint, tests, Firefox build, web-ext lint).
+- Contract files (types, messaging protocol, storage items, errors, theme tokens) are shared interfaces. Propose changes in an issue or PR description first. See [AGENTS.md](AGENTS.md#contract-files-frozen).
+
+## Docs
+
+`/docs` is the source of truth. If you change behavior, update the matching doc in the same PR. Larger decisions get an ADR in [docs/decisions/](docs/decisions/README.md).
+
+## Common tasks
+
+- Add an extractor: [docs/extractors.md](docs/extractors.md#adding-an-extractor)
+- Testing approach and manual checklist: [docs/testing.md](docs/testing.md)
+
+## Code of conduct
+
+Be kind, assume good faith, and keep discussions about the work. Harassment of any kind isn't tolerated.
