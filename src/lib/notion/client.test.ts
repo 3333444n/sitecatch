@@ -192,7 +192,7 @@ describe('getDataSource', () => {
     expect(res.error.code).toBe('db-not-shared');
     expect(res.error.action).toBe('reshare-db');
     expect(res.error.message).toMatch(
-      /open the database in Notion → ••• → Connections → add your integration/i,
+      /open the database in Notion → ••• → Connections → add your Sitecatch connection/i,
     );
     expect(res.error.detail).toContain('object_not_found');
   });
