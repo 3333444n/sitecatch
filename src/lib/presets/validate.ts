@@ -1,7 +1,8 @@
 /**
  * Validates a preset against the live data source schema. Mappings target
  * properties by id, so renames are harmless (info only), while deleted
- * properties and type changes block saving until the preset is fixed.
+ * properties and type changes block saving until the preset is fixed — except
+ * the dedupe property, whose problems only turn duplicate detection off.
  */
 import type { DataSourceSchema, PropertySchema } from '@/lib/notion/types';
 import { isCompatible, isWritableType } from './compat';
@@ -82,6 +83,40 @@ function validateMapping(mapping: Mapping, prop: PropertySchema | undefined): Pr
   return issues;
 }
 
+/**
+ * Issue for a dedupe property that is missing or no longer a url/text/title
+ * property. Never blocking: the save goes ahead with duplicate detection off.
+ */
+export function dedupePropertyIssue(preset: Preset, schema: DataSourceSchema): PresetIssue | null {
+  const dedupeId = preset.dedupe.propertyId;
+  if (dedupeId === null) return null;
+  const prop = schema.properties[dedupeId];
+  if (!prop) {
+    return {
+      propertyId: dedupeId,
+      kind: 'missing',
+      blocking: false,
+      detail:
+        'Duplicate check is off: the property used to detect duplicates was deleted or is no longer shared. Choose another URL property in the preset.',
+    };
+  }
+  if (!isDedupeCapable(schema, dedupeId)) {
+    return {
+      propertyId: dedupeId,
+      kind: 'type-changed',
+      blocking: false,
+      detail: `Duplicate check is off: “${prop.name}” is now a ${prop.type} property and can't be used to detect duplicates. Choose a URL or text property in the preset.`,
+    };
+  }
+  return null;
+}
+
+/** Whether `propertyId` exists in the schema with a type usable for duplicate detection. */
+export function isDedupeCapable(schema: DataSourceSchema, propertyId: string): boolean {
+  const type = schema.properties[propertyId]?.type;
+  return type !== undefined && (DEDUPE_PROPERTY_TYPES as readonly string[]).includes(type);
+}
+
 export function validatePreset(preset: Preset, schema: DataSourceSchema): PresetIssue[] {
   const issues: PresetIssue[] = preset.mappings.flatMap((m) =>
     validateMapping(m, schema.properties[m.propertyId]),
@@ -108,26 +143,8 @@ export function validatePreset(preset: Preset, schema: DataSourceSchema): Preset
     }
   }
 
-  const dedupeId = preset.dedupe.propertyId;
-  if (dedupeId !== null) {
-    const prop = schema.properties[dedupeId];
-    if (!prop) {
-      issues.push({
-        propertyId: dedupeId,
-        kind: 'missing',
-        blocking: true,
-        detail:
-          'The property used to detect duplicates was deleted or is no longer shared. Choose another URL property or turn off duplicate detection.',
-      });
-    } else if (!(DEDUPE_PROPERTY_TYPES as readonly string[]).includes(prop.type)) {
-      issues.push({
-        propertyId: dedupeId,
-        kind: 'type-changed',
-        blocking: true,
-        detail: `“${prop.name}” is now a ${prop.type} property and can't be used to detect duplicates. Choose a URL or text property.`,
-      });
-    }
-  }
+  const dedupeIssue = dedupePropertyIssue(preset, schema);
+  if (dedupeIssue) issues.push(dedupeIssue);
   return issues;
 }
 

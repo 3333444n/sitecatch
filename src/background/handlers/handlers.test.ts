@@ -215,6 +215,16 @@ describe('dup/check', () => {
     expect(client.queryByUrl.mock.calls[0]?.[3]).toBe('rich_text');
   });
 
+  it.each(['gone', 'rating'])('skips the query when the dedupe property is unusable (%s)', async (propertyId) => {
+    await authItem.setValue(makeAuth());
+    await savePreset(makePreset({ dedupe: { propertyId } }));
+    const { client } = fakeClient(resourcesSchema);
+    const { deps } = makeDeps(client);
+    const res = await createHandlers(deps)['dup/check']({ type: 'dup/check', presetId: 'preset-1', url: 'https://example.com' }, sender);
+    expect(res).toEqual({ ok: true, data: { matches: [] } });
+    expect(client.queryByUrl).not.toHaveBeenCalled();
+  });
+
   it('reports a missing preset', async () => {
     const { deps } = makeDeps(fakeClient().client);
     const res = await createHandlers(deps)['dup/check']({ type: 'dup/check', presetId: 'nope', url: 'https://a' }, sender);

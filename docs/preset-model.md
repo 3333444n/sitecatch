@@ -83,7 +83,7 @@ Conversions:
 
 ## Validation
 
-Every time the popup opens (`ds/schema`) and again right before saving (save pipeline), the preset is validated against the **live** data source schema. Problems are reported as `PresetIssue { propertyId, kind, detail }`.
+Every time the popup opens (`ds/schema`) and again right before saving (save pipeline), the preset is validated against the **live** data source schema. Problems are reported as `PresetIssue { propertyId, kind, blocking, detail }`. `blocking` (set by `validatePreset`, read via `isBlocking()`) says whether the issue must be fixed before saving; the table below gives the defaults.
 
 | `kind` | When | Blocks saving? |
 | --- | --- | --- |
@@ -95,7 +95,7 @@ Every time the popup opens (`ds/schema`) and again right before saving (save pip
 The same checks cover the non-mapping references:
 
 - `screenshot.filesPropertyId` that is missing or no longer `files`: **blocks** (same as `missing` / `type-changed`).
-- `dedupe.propertyId` that is missing or changed type: **doesn't block**. The duplicate check is skipped and the popup shows a warning.
+- `dedupe.propertyId` that is missing or no longer `url` / `rich_text` / `title`: **doesn't block** (`blocking: false`, detail starts with "Duplicate check is off: …"). The popup shows it as a notice, `dup/check` returns no matches without querying Notion, and the save pipeline skips dedupe entirely (the URL value is written as-is, not normalized).
 
 Blocking issues show in the popup with an "Edit preset" button. The preset editor highlights the affected mappings.
 

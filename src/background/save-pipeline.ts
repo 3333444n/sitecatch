@@ -26,7 +26,7 @@ import type {
 } from '@/lib/notion/types';
 import { buildPageExtras, buildProperties, DEFAULT_SCREENSHOT_NAME } from '@/lib/properties/build';
 import type { FormValues, Preset } from '@/lib/presets/types';
-import { validatePreset } from '@/lib/presets/validate';
+import { isDedupeCapable, validatePreset } from '@/lib/presets/validate';
 import type { CaptureResult } from '@/lib/extract/types';
 import type { AuthState, HistoryEntry } from '@/lib/storage/items';
 import { normalizeUrl, urlVariants } from '@/lib/url/normalize';
@@ -90,13 +90,19 @@ export function needsScreenshot(preset: Preset, values: FormValues): boolean {
   );
 }
 
-/** Copy of `values` with the dedupe property's URL normalized; also returns that URL. */
+/**
+ * Copy of `values` with the dedupe property's URL normalized; also returns that URL.
+ * When `schema` is given and the dedupe property is missing or has an unusable
+ * type, dedupe is off: values are left alone and `dedupeUrl` is null.
+ */
 export function normalizeDedupeValue(
   preset: Preset,
   values: FormValues,
+  schema?: DataSourceSchema,
 ): { values: FormValues; dedupeUrl: string | null } {
   const id = preset.dedupe.propertyId;
   if (id === null) return { values, dedupeUrl: null };
+  if (schema && !isDedupeCapable(schema, id)) return { values, dedupeUrl: null };
   const value = values[id];
   if (value?.kind !== 'text' || value.value.trim() === '') return { values, dedupeUrl: null };
   const normalized = normalizeUrl(value.value);
@@ -228,8 +234,8 @@ async function save(
   const blocking = validatePreset(preset, schema).filter((i) => i.blocking);
   if (blocking.length > 0) return err(presetInvalidError(preset, blocking.map((i) => i.detail)));
 
-  // 2. Normalize the dedupe URL so re-saves are detected.
-  const { values, dedupeUrl } = normalizeDedupeValue(preset, request.values);
+  // 2. Normalize the dedupe URL so re-saves are detected (skipped when dedupe is off).
+  const { values, dedupeUrl } = normalizeDedupeValue(preset, request.values, schema);
   const warnings: string[] = [];
 
   // 3. Screenshot upload (once).

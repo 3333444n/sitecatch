@@ -2,6 +2,7 @@
 import { ok } from '@/lib/errors';
 import type { Handler } from '@/lib/messaging/protocol';
 import { getPreset } from '@/lib/presets/storage';
+import { isDedupeCapable } from '@/lib/presets/validate';
 import { urlVariants } from '@/lib/url/normalize';
 import type { BackgroundDeps, ClientProvider } from '../context';
 import { getSchema } from '../schema-cache';
@@ -21,13 +22,12 @@ export function createDuplicateHandlers(deps: BackgroundDeps, clients: ClientPro
 
     // Query by the property's live type (url / rich_text / title); fall back to the mapping snapshot.
     const schema = await getSchema(client, preset.dataSourceId, { now: deps.now().getTime() });
+    // A live schema without a usable dedupe property means duplicate check is off.
+    if (schema.ok && !isDedupeCapable(schema.data, propertyId)) return ok({ matches: [] });
     const liveType = schema.ok ? schema.data.properties[propertyId]?.type : undefined;
     const mappedType = preset.mappings.find((m) => m.propertyId === propertyId)?.propertyType;
     const type = liveType ?? mappedType ?? 'url';
-    if (type !== 'url' && type !== 'rich_text' && type !== 'title') {
-      // Dedupe property changed type: the popup shows the preset issue instead.
-      return ok({ matches: [] });
-    }
+    if (type !== 'url' && type !== 'rich_text' && type !== 'title') return ok({ matches: [] });
 
     const res = await client.queryByUrl(preset.dataSourceId, propertyId, urlVariants(url), type);
     if (!res.ok) return res;

@@ -109,6 +109,23 @@ describe('runSavePipeline — create', () => {
     expect(props.notes).toEqual({ rich_text: [{ type: 'text', text: { content: raw } }] });
   });
 
+  it('saves with dedupe off (no normalization) when the dedupe property is unusable', async () => {
+    const preset = makePreset({
+      mappings: [
+        ...PRESET_BASE.mappings.filter((m) => m.propertyId !== 'notes'),
+        { propertyId: 'notes', propertyName: 'Notes', propertyType: 'rich_text', source: { kind: 'extractor', extractor: 'url' }, editableInPopup: false },
+      ],
+      dedupe: { propertyId: 'rating' },
+    });
+    const t = setup({ preset });
+    const raw = 'https://Example.com/article/?utm_source=x#top';
+    const res = await runSavePipeline('job-1', request({ values: { ...VALUES, notes: { kind: 'text', value: raw } } }), t.deps);
+    expect(res.ok).toBe(true);
+    const props = createBody(t.client).properties ?? {};
+    expect(props['p%3Aurl']).toEqual({ url: raw });
+    expect(t.client.queryByUrl).not.toHaveBeenCalled();
+  });
+
   it('fetches a fresh schema and blocks on preset issues without writing anything', async () => {
     const preset = makePreset({
       mappings: [{ propertyId: 'gone', propertyName: 'Gone', propertyType: 'url', source: { kind: 'extractor', extractor: 'url' }, editableInPopup: false }],
@@ -325,6 +342,12 @@ describe('runSavePipeline — ambiguous create failure', () => {
 });
 
 describe('normalizeDedupeValue', () => {
+  it('leaves values alone when the schema has no usable dedupe property', () => {
+    const preset = makePreset({ dedupe: { propertyId: 'gone' } });
+    const values: FormValues = { gone: { kind: 'text', value: 'https://Example.com/?utm_source=x' } };
+    expect(normalizeDedupeValue(preset, values, resourcesSchema)).toEqual({ values, dedupeUrl: null });
+  });
+
   it('leaves values alone without a dedupe property', () => {
     const preset = makePreset();
     expect(normalizeDedupeValue(preset, VALUES)).toEqual({ values: VALUES, dedupeUrl: null });
