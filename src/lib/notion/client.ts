@@ -53,15 +53,19 @@ export interface NotionClient {
   getDataSource(id: string): Promise<Result<DataSourceSchema>>;
   /**
    * Pages whose `propertyId` equals any of `urls` (OR filter). `propertyType`
-   * is the dedupe property's type (`url` by default; `rich_text` also works).
+   * is the dedupe property's type (`url` by default; `rich_text` and `title` also work).
    */
   queryByUrl(
     dataSourceId: string,
     propertyId: string,
     urls: string[],
-    propertyType?: 'url' | 'rich_text',
+    propertyType?: 'url' | 'rich_text' | 'title',
   ): Promise<Result<DuplicateMatch[]>>;
-  /** Not retried on network errors/timeouts/5xx: the caller should re-run the duplicate check. */
+  /**
+   * Not retried on network errors/timeouts/5xx: the caller should re-run the duplicate check.
+   * An error response carrying `additional_data.committed_resource_id` (the write was
+   * saved anyway) resolves to success with a URL built from that id.
+   */
   createPage(body: NotionCreatePageBody): Promise<Result<NotionPageRef>>;
   updatePage(pageId: string, body: NotionUpdatePageBody): Promise<Result<NotionPageRef>>;
   /** Single-part upload. Resolves to the file upload id to reference as `{ type: 'file_upload', file_upload: { id } }`. */
@@ -255,6 +259,18 @@ export function mapDuplicateMatch(raw: unknown): DuplicateMatch | null {
   };
 }
 
+/** `https://www.notion.so/<id without dashes>` — Notion redirects this to the page. */
+export function pageUrlFromId(id: string): string {
+  return `https://www.notion.so/${id.replace(/-/g, '')}`;
+}
+
+/** `additional_data.committed_resource_id` of an error body (Notion saved the write despite the error). */
+export function committedResourceId(errorBody: unknown): string | undefined {
+  if (!isObj(errorBody) || !isObj(errorBody.additional_data)) return undefined;
+  const id = str(errorBody.additional_data.committed_resource_id);
+  return id && id.length > 0 ? id : undefined;
+}
+
 function toPageRef(raw: unknown): NotionPageRef | null {
   if (!isObj(raw)) return null;
   const id = str(raw.id);
@@ -328,7 +344,11 @@ export function createNotionClient(options: NotionClientOptions): NotionClient {
       // error responses fall back to status-only mapping (data stays null).
       if (response.ok) return fail(mapNetworkError(cause, spec.op));
     }
-    if (!response.ok) return fail(mapHttpError(response.status, parseErrorBody(data), spec.op));
+    if (!response.ok) {
+      const committed = spec.op === 'create-page' ? committedResourceId(data) : undefined;
+      if (committed) return ok({ object: 'page', id: committed, url: pageUrlFromId(committed) });
+      return fail(mapHttpError(response.status, parseErrorBody(data), spec.op));
+    }
     return ok(data);
   }
 
