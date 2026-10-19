@@ -2,7 +2,7 @@
 
 ## v0.1.0 (released 2026-10-18)
 
-Code: <https://github.com/3333444n/sitecatch>. Install from source; store distribution is out of scope for now.
+Code: <https://github.com/3333444n/sitecatch>. Install from source or as a signed `.xpi` (AMO unlisted, self-distributed); store listings are out of scope for now.
 
 - Firefox-first MV3 extension, plus a Chrome build (not yet smoke-tested).
 - Guided setup wizard: **personal access token** (default, no per-database sharing) or **internal connection** token, api.notion.com access, sharing databases (connections only), database list with "Can't see your database?" help.
@@ -10,13 +10,13 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source; store distri
 - Extractors: screenshot, title, ogTitle, url, canonicalUrl, domain, metaDescription, ogDescription, favicon, ogImage, selection, fonts, dateSaved.
 - Popup: editable pre-filled form, duplicate banner (update / duplicate / open), background save that survives popup close, success with **Open in Notion**, actionable errors, restricted-page fallback.
 - Presets synced via `storage.sync`. JSON import/export.
+- Signed on AMO's **unlisted** channel (self-distributed `.xpi`, 2026-10-18). The gecko id `sitecatch@sitecatch.app` is final and permanent. Process: [releasing.md](./releasing.md).
 - Manually tested end to end in Firefox with a personal access token on a Free-plan workspace (2026-10-18). Verified and still-open items: [testing.md](./testing.md#manual-e2e-results).
 
 ## Next
 
 - Finish the manual E2E: Chrome smoke test, internal connection path, restricted pages, popup closed mid-save, import/export, the old `notion.so/profile/integrations` redirect.
 - Capture the setup screenshots setup-1…13 into `public/setup/` ([checklist](./setup-guide.md#screenshots-to-capture)). Until then the wizard shows "Screenshot coming soon".
-- Finalize the gecko id (`sitecatch@sitecatch.app` in `wxt.config.ts` is unconfirmed) before the first signed AMO build; it can't change after publication.
 
 ### Known issues
 
@@ -26,7 +26,7 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source; store distri
 
 Not committed, roughly in priority order:
 
-- **AMO and Chrome Web Store listings** (signed builds, privacy policy from [permissions-privacy.md](./permissions-privacy.md)).
+- **Public AMO listing and Chrome Web Store listing** (Firefox builds are already signed unlisted; a listing needs store assets and a privacy policy from [permissions-privacy.md](./permissions-privacy.md)).
 - **Upload favicons** instead of hotlinking them (some hosts block hotlinking).
 - **Published date / author auto-mapping** (`article:published_time`, JSON-LD, `author` meta).
 - **Image picker for the cover** (choose among og:image, page images, screenshot).

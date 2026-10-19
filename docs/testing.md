@@ -13,10 +13,11 @@
 | `pnpm dev:firefox` / `pnpm dev` | Dev build with live reload in Firefox / Chrome (opens a browser window) |
 | `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips in `.output/` (gitignored) |
 | `pnpm icons` | Re-rasterizes `assets/icon.svg` into `public/icon/*.png` (dev only) |
+| `pnpm sign:firefox` | Builds and signs the Firefox `.xpi` on AMO's unlisted channel ([releasing.md](./releasing.md)); `--dry-run` skips signing |
 
 ## Unit test strategy
 
-Tests sit next to the code as `*.test.ts`. Most logic is written as pure functions so it can be tested without a browser. `browser.*` is replaced by WXT's `fakeBrowser`, and `fetch` is mocked.
+Tests sit next to the code as `*.test.ts` (the Node helpers in `scripts/lib/` use `*.test.mjs`). Most logic is written as pure functions so it can be tested without a browser. `browser.*` is replaced by WXT's `fakeBrowser`, and `fetch` is mocked.
 
 | Area | What to test |
 | --- | --- |

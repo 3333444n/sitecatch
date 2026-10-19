@@ -8,7 +8,7 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 ![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
-> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet, so install from source. Source and issues: <https://github.com/3333444n/sitecatch>.
+> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet: install from source, or install a signed `.xpi` in Firefox (see [Install](#install-from-source)). Source and issues: <https://github.com/3333444n/sitecatch>.
 
 ## Features
 
@@ -48,7 +48,9 @@ pnpm install
 pnpm build:firefox
 ```
 
-**Firefox:** open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → select `.output/firefox-mv3/manifest.json`. Temporary add-ons are removed when Firefox restarts. For development, `pnpm dev:firefox` builds, launches a Firefox window with Sitecatch loaded, and reloads on changes.
+**Firefox, for daily use (signed `.xpi`):** Firefox only keeps signed add-ons installed. Release builds are signed on AMO's unlisted channel (self-distributed, not listed in the store). Install the `.xpi` via `about:addons` → gear icon → **Install Add-on From File…**. It stays installed across restarts and updates in place when you install a newer version. Maintainers create it with `pnpm sign:firefox` ([releasing guide](docs/releasing.md)).
+
+**Firefox, for development (temporary add-on):** open `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on…** → select `.output/firefox-mv3/manifest.json`. Temporary add-ons are removed when Firefox restarts. `pnpm dev:firefox` builds, launches a Firefox window with Sitecatch loaded, and reloads on changes.
 
 **Chrome** (not smoke-tested yet): `pnpm build:chrome`, then `chrome://extensions` → enable **Developer mode** → **Load unpacked** → select `.output/chrome-mv3`.
 
@@ -86,6 +88,7 @@ Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:ext` | Types, ESLint, web-ext lint |
 | `pnpm check` | All of the above. Must pass before opening a PR. |
 | `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips in `.output/` |
+| `pnpm sign:firefox` | Build and sign the Firefox `.xpi` on AMO (unlisted). See [docs/releasing.md](docs/releasing.md). |
 
 Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
 

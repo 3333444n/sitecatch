@@ -3,6 +3,7 @@ node_modules
 .wxt
 .env
 .env.*
+!.env.example
 .claude/settings.local.json
 *.zip
 web-ext-artifacts

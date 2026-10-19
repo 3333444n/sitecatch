@@ -15,6 +15,7 @@
 | `pnpm build:firefox` / `pnpm build:chrome` | Production build into `.output/<browser>-mv3` |
 | `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips (in `.output/`, gitignored) |
 | `pnpm icons` | Rasterize `assets/icon.svg` → `public/icon/*.png` |
+| `pnpm sign:firefox` | Build + sign the Firefox `.xpi` on AMO's unlisted channel → `web-ext-artifacts/` (maintainer only; needs AMO keys in `.env.local`, see [docs/releasing.md](./docs/releasing.md)). `--dry-run` validates keys and builds without signing |
 | `pnpm test` / `pnpm test:watch` | Vitest (happy-dom + WXT fake browser) |
 | `pnpm typecheck` | `wxt prepare && tsc --noEmit` |
 | `pnpm lint` | ESLint (flat config, typescript-eslint strict) |
