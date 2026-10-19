@@ -1,0 +1,12 @@
+{
+  "id": "ds-fav",
+  "name": "Fav websites",
+  "titlePropertyId": "nm",
+  "properties": {
+    "fonts": { "id": "fonts", "name": "Fonts", "type": "multi_select", "options": [] },
+    "nm": { "id": "nm", "name": "Site", "type": "title" },
+    "link": { "id": "link", "name": "Link", "type": "url" },
+    "link2": { "id": "link2", "name": "Canonical", "type": "url" },
+    "img": { "id": "img", "name": "Preview", "type": "files" }
+  }
+}

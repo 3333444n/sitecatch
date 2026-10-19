@@ -1,0 +1,45 @@
+{
+  "id": "ds-resources",
+  "name": "Resources",
+  "titlePropertyId": "title",
+  "properties": {
+    "title": { "id": "title", "name": "Name", "type": "title" },
+    "p%3Aurl": { "id": "p%3Aurl", "name": "URL", "type": "url" },
+    "notes": { "id": "notes", "name": "Notes", "type": "rich_text" },
+    "rating": { "id": "rating", "name": "Rating", "type": "number" },
+    "kind": {
+      "id": "kind",
+      "name": "Kind",
+      "type": "select",
+      "options": [
+        { "id": "o1", "name": "Article", "color": "blue" },
+        { "id": "o2", "name": "Tool", "color": "green" }
+      ]
+    },
+    "tags": {
+      "id": "tags",
+      "name": "Tags",
+      "type": "multi_select",
+      "options": [
+        { "id": "t1", "name": "design", "color": "pink" },
+        { "id": "t2", "name": "dev", "color": "gray" }
+      ]
+    },
+    "status": {
+      "id": "status",
+      "name": "Status",
+      "type": "status",
+      "options": [
+        { "id": "s1", "name": "Inbox", "color": "default" },
+        { "id": "s2", "name": "Read", "color": "green" }
+      ]
+    },
+    "saved": { "id": "saved", "name": "Saved", "type": "date" },
+    "shots": { "id": "shots", "name": "Screenshots", "type": "files" },
+    "fav": { "id": "fav", "name": "Favorite", "type": "checkbox" },
+    "email": { "id": "email", "name": "Contact", "type": "email" },
+    "phone": { "id": "phone", "name": "Phone", "type": "phone_number" },
+    "created": { "id": "created", "name": "Created", "type": "created_time" },
+    "rel": { "id": "rel", "name": "Related", "type": "relation" }
+  }
+}
