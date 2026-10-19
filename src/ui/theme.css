@@ -67,6 +67,32 @@
   --sc-color-focus: rgba(35, 131, 226, 0.45);
   --sc-shadow-sm: 0 1px 2px rgba(15, 15, 15, 0.06);
   --sc-shadow-md: 0 4px 12px rgba(15, 15, 15, 0.1), 0 0 0 1px rgba(15, 15, 15, 0.05);
+
+  /* Overlay / scrim (lightbox, menus) */
+  --sc-color-scrim: rgba(15, 15, 15, 0.6);
+  --sc-shadow-lg: 0 12px 32px rgba(15, 15, 15, 0.16), 0 0 0 1px rgba(15, 15, 15, 0.05);
+
+  /* Notion option colors (select / multi_select / status chips): light */
+  --sc-notion-default-bg: rgba(227, 226, 224, 0.5);
+  --sc-notion-default-text: #32302c;
+  --sc-notion-gray-bg: #e3e2e0;
+  --sc-notion-gray-text: #32302c;
+  --sc-notion-brown-bg: #eee0da;
+  --sc-notion-brown-text: #442a1e;
+  --sc-notion-orange-bg: #fadec9;
+  --sc-notion-orange-text: #49290e;
+  --sc-notion-yellow-bg: #fdecc8;
+  --sc-notion-yellow-text: #402c1b;
+  --sc-notion-green-bg: #dbeddb;
+  --sc-notion-green-text: #1c3829;
+  --sc-notion-blue-bg: #d3e5ef;
+  --sc-notion-blue-text: #183347;
+  --sc-notion-purple-bg: #e8deee;
+  --sc-notion-purple-text: #412454;
+  --sc-notion-pink-bg: #f5e0e9;
+  --sc-notion-pink-text: #4c2337;
+  --sc-notion-red-bg: #ffe2dd;
+  --sc-notion-red-text: #5d1715;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -94,6 +120,30 @@
     --sc-color-focus: rgba(58, 143, 230, 0.55);
     --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
     --sc-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+
+    --sc-color-scrim: rgba(0, 0, 0, 0.7);
+    --sc-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    --sc-notion-default-bg: #373737;
+    --sc-notion-default-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-gray-bg: #5a5a5a;
+    --sc-notion-gray-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-brown-bg: #603b2c;
+    --sc-notion-brown-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-orange-bg: #854c1d;
+    --sc-notion-orange-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-yellow-bg: #89632a;
+    --sc-notion-yellow-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-green-bg: #2b593f;
+    --sc-notion-green-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-blue-bg: #28456c;
+    --sc-notion-blue-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-purple-bg: #492f64;
+    --sc-notion-purple-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-pink-bg: #69314c;
+    --sc-notion-pink-text: rgba(255, 255, 255, 0.85);
+    --sc-notion-red-bg: #6e3630;
+    --sc-notion-red-text: rgba(255, 255, 255, 0.85);
   }
 }
 
