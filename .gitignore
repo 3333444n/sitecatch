@@ -1,0 +1,11 @@
+node_modules
+.output
+.wxt
+.env
+.env.*
+.claude/settings.local.json
+*.zip
+web-ext-artifacts
+coverage
+.DS_Store
+*.log
