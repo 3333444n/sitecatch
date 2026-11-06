@@ -4,7 +4,16 @@
   "private": true,
   "description": "Collect websites into your Notion databases.",
   "type": "module",
+  "keywords": [
+    "notion",
+    "browser-extension",
+    "firefox",
+    "webextension",
+    "bookmarks",
+    "web-clipper"
+  ],
   "license": "MIT",
+  "author": "Sitecatch contributors (https://github.com/3333444n/sitecatch/graphs/contributors)",
   "homepage": "https://github.com/3333444n/sitecatch#readme",
   "repository": {
     "type": "git",
