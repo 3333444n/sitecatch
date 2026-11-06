@@ -29,11 +29,12 @@ Tests sit next to the code as `*.test.ts` (the Node helpers in `scripts/lib/` us
 | Compat matrix (`lib/extract/compat-table.ts`, `lib/presets/compat`) | Every `ValueKind` → allowed types exactly as in [preset-model.md](./preset-model.md#compatibility-matrix); `ExtractorDef.compatible` matches the table. |
 | Preset validation | Schema fixtures: missing, renamed, type-changed, option-missing (select vs status). `PresetIssue.blocking` as documented. Screenshot reference blocks; dedupe reference never blocks ("Duplicate check is off"). |
 | Import/export | Envelope checks, bad files rejected whole, token never present. |
-| Property builders (`lib/properties`) | Each writable type's JSON shape, 2000-char chunking, 100-element cap, comma sanitizing for select names, files (upload vs external). |
+| Property builders (`lib/properties`) | Each writable type's JSON shape (incl. `relation`: deduped ids, 100-page cap), 2000-char chunking, 100-element cap, comma sanitizing for select names, files (upload vs external). |
 | Save pipeline | Mocked Notion: order is validate → upload (once) → create/update. The same upload id is used for files/cover/body. Update doesn't append a body image. Job state transitions in `storage.session`, `JobState.warnings`. Normalized URL written to the dedupe property only; dedupe skipped when its property is unusable. A create error doesn't retry; `committed_resource_id` and the recovery query. |
-| Background integration (`background/integration.test.ts`) | Real router + handlers + Notion client, messages sent through `fakeBrowser.runtime.onMessage` with a popup sender, and a stateful fake Notion `fetch`: validate → `ds/list` → `ds/schema` → save with screenshot upload → job `done` with `pageUrl` → `dup/check` finds the page. Untrusted senders are ignored. |
+| Background integration (`background/integration.test.ts`) | Real router + handlers + Notion client, messages sent through `fakeBrowser.runtime.onMessage` with a popup sender, and a stateful fake Notion `fetch`: `conn/add` → `ds/list` → `ds/schema` → save with screenshot upload → job `done` with `pageUrl` → `dup/check` finds the page. Untrusted senders are ignored. |
+| Workspaces (`background/connections`, `background/handlers`, `lib/presets/connection`) | One-time `local:auth` migration (idempotent, keeps `local:auth`), add/replace-in-place by workspace id, token or legacy match, `conn/remove` clearing the legacy copy, pinning unassigned presets when a second workspace is added, the preset → connection resolution rule. |
 | Messaging | `isRequest` guard. `sendRequest` turns transport failures into `AppError`s. Router sender rules (`isTrustedSender`). |
-| UI kit / pages | Components (`SegmentedControl` keyboard and ARIA, `ErrorBanner` actions…), popup states, setup wizard, preset editor, import/export with Testing Library. |
+| UI kit / pages | Components (`SegmentedControl` keyboard and ARIA, `ErrorBanner` actions…), popup states, setup wizard, preset editor, `RelationPicker`, import/export with Testing Library. |
 
 ## Manual E2E checklist
 
@@ -46,12 +47,15 @@ Run with a real Notion workspace. This doubles as the setup test: capture the se
 - [ ] **Personal access token** (default): create one following the wizard. Paste an **invalid** token → clear error. Paste the valid one → bot + workspace shown. "Your databases" lists the databases you can open, without any sharing.
 - [ ] **Internal connection**: re-run setup with a connection token. Share 2 databases ("Resources", "Fav websites") → both listed. Unshare one → it disappears. With none shared, the empty-state help shows.
 - [ ] Revoke api.notion.com access in `about:addons` → wizard/popup show **Grant access**, and it works.
+- [ ] **Second workspace**: Workspaces → **Add workspace** with a token from another workspace → two cards. Existing presets stay on the first workspace; a new preset asks for the workspace first. The popup groups presets by workspace and saves each into its own workspace. Pasting a new token for a connected workspace replaces it (no duplicate card). **Remove** one → its presets show as needing a workspace.
+- [ ] **Upgrade from v0.1**: install v0.1.0, connect, create a preset, then load the current build → the workspace and preset still work without re-entering the token.
 
 **Presets & saving**
 
 - [ ] Build the "Resources" and "Fav websites" presets (see [preset-model.md](./preset-model.md#examples)).
 - [ ] Save a site with each. In Notion, check properties, cover, body image, icon, and the screenshot in the files property. Dates with a time show in your local time zone. **Open in Notion** opens the right page in a new tab.
 - [ ] Ask fields: required blocks Save. A new select/multi-select option is created.
+- [ ] Relation property: as a fixed value and as ask-in-popup, search the related database, link two pages → both linked in Notion. With an internal connection and the related database **not** shared → the picker shows that it can't see the linked database.
 - [ ] Re-save the same URL (also with `?utm_source=x` added) → duplicate banner. The URL property holds the normalized URL. Check **Update existing** (properties/cover replaced, no second body image), **Save as duplicate** (new page), **Open existing**.
 - [ ] Close the popup mid-save → the page is still created and the badge shows ✓.
 - [ ] Rename a mapped property in Notion → still saves, rename notice shown. Delete one / change its type → save blocked with **Edit preset**. Delete the dedupe property → "Duplicate check is off" notice, saving still works.

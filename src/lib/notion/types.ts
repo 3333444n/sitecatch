@@ -49,6 +49,7 @@ export type WritablePropertyType = Extract<
   | 'url'
   | 'email'
   | 'phone_number'
+  | 'relation'
 >;
 
 export const WRITABLE_PROPERTY_TYPES: readonly WritablePropertyType[] = [
@@ -64,6 +65,7 @@ export const WRITABLE_PROPERTY_TYPES: readonly WritablePropertyType[] = [
   'url',
   'email',
   'phone_number',
+  'relation',
 ] as const;
 
 /** Notion's named colors for select/multi_select/status options. */
@@ -112,6 +114,17 @@ export interface PropertySchema {
   type: NotionPropertyType;
   /** Options for select / multi_select / status. */
   options?: SelectOption[];
+  /** For `relation`: the data source whose pages can be linked. */
+  relation?: { dataSourceId: string };
+}
+
+/** A page offered in a relation picker (POST /v1/data_sources/{id}/query). */
+export interface PageOption {
+  id: string;
+  /** Plain-text title ("Untitled" if empty). */
+  title: string;
+  icon?: NotionIcon;
+  url?: string;
 }
 
 /** Schema of a data source (GET /v1/data_sources/{id}). */
@@ -195,7 +208,8 @@ export type NotionPropertyValue =
   | { files: NotionFileValue[] }
   | { url: string }
   | { email: string }
-  | { phone_number: string };
+  | { phone_number: string }
+  | { relation: { id: string }[] };
 
 /** Image block appended to the page body. */
 export interface NotionImageBlock {

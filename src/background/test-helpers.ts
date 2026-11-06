@@ -52,6 +52,7 @@ export function fakeClient(schema?: DataSourceSchema) {
       Promise.resolve(ok(schema ?? { id, name: 'DS', properties: {}, titlePropertyId: 'title' })),
     ),
     queryByUrl: track('queryByUrl', () => Promise.resolve(ok([]))),
+    searchPages: track('searchPages', () => Promise.resolve(ok([]))),
     createPage: track('createPage', () => Promise.resolve(ok({ id: 'page-1', url: 'https://www.notion.so/page1' }))),
     updatePage: track('updatePage', (id) => Promise.resolve(ok({ id, url: `https://www.notion.so/${id}` }))),
     uploadFile: track('uploadFile', () => Promise.resolve(ok('upload-1'))),

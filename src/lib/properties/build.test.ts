@@ -163,6 +163,59 @@ describe('buildProperties', () => {
   });
 });
 
+describe('relation values', () => {
+  const schema = {
+    ...resourcesSchema,
+    properties: {
+      ...resourcesSchema.properties,
+      proj: { id: 'proj', name: 'Projects', type: 'relation' as const, relation: { dataSourceId: 'ds-projects' } },
+    },
+  };
+  const relPreset = makePreset({
+    mappings: [
+      {
+        propertyId: 'proj',
+        propertyName: 'Projects',
+        propertyType: 'relation',
+        source: { kind: 'static', value: { kind: 'relation', value: [] } },
+        editableInPopup: false,
+      },
+    ],
+  });
+  const ref = (id: string) => ({ id, title: `Page ${id}` });
+
+  it('writes the page ids, deduped, without titles', () => {
+    const { properties, warnings } = buildProperties(
+      relPreset,
+      { proj: { kind: 'relation', value: [ref('a'), ref('b'), ref('a'), { id: ' ', title: 'blank' }] } },
+      schema,
+    );
+    expect(warnings).toEqual([]);
+    expect(properties).toEqual({ proj: { relation: [{ id: 'a' }, { id: 'b' }] } });
+  });
+
+  it('caps at 100 related pages per request with a warning', () => {
+    const many = Array.from({ length: 105 }, (_, i) => ref(`p${String(i)}`));
+    const { properties, warnings } = buildProperties(relPreset, { proj: { kind: 'relation', value: many } }, schema);
+    const rel = (properties.proj as { relation: { id: string }[] }).relation;
+    expect(rel).toHaveLength(100);
+    expect(rel[0]).toEqual({ id: 'p0' });
+    expect(rel[99]).toEqual({ id: 'p99' });
+    expect(warnings).toEqual(['“Projects” had more than 100 linked pages; only the first 100 were saved.']);
+  });
+
+  it('omits an empty relation (like other empty values)', () => {
+    const { properties } = buildProperties(relPreset, { proj: { kind: 'relation', value: [] } }, schema);
+    expect(properties).toEqual({});
+  });
+
+  it('skips a value of the wrong kind with a warning', () => {
+    const { properties, warnings } = buildProperties(relPreset, { proj: { kind: 'text', value: 'x' } }, schema);
+    expect(properties).toEqual({});
+    expect(warnings[0]).toMatch(/unexpected kind of value/);
+  });
+});
+
 describe('buildPageExtras', () => {
   const capture = makeCapture();
 

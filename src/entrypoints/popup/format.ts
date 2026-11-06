@@ -54,5 +54,7 @@ export function summarizeValue(value: FormValue): string {
         : formatDate(value.value.start);
     case 'files':
       return value.value.map(fileRefLabel).join(', ');
+    case 'relation':
+      return value.value.map((r) => r.title || 'Untitled').join(', ');
   }
 }

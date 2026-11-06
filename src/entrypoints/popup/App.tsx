@@ -48,7 +48,7 @@ type Load<T> =
 type Boot =
   | { kind: 'checking' }
   | { kind: 'error'; error: AppError }
-  | { kind: 'no-setup'; hasToken: boolean; hostPermission: boolean }
+  | { kind: 'no-setup'; hasConnection: boolean; hostPermission: boolean }
   | { kind: 'no-presets' }
   | { kind: 'ready'; presets: Preset[]; tab: TabInfo; connections: ConnectionSummary[] };
 
@@ -158,7 +158,7 @@ export function App() {
     const isLive = () => live;
     setBoot({ kind: 'checking' });
     void (async () => {
-      const [auth, list, lastId, tabInfo, lastJob] = await Promise.all([
+      const [conn, list, lastId, tabInfo, lastJob] = await Promise.all([
         sendRequest({ type: 'conn/list' }),
         listPresets().catch((): Preset[] => []),
         getLastPresetId().catch(() => null),
@@ -166,13 +166,13 @@ export function App() {
         lastJobItem.getValue().catch((): LastJobRecord | null => null),
       ]);
       if (!isLive()) return;
-      if (!auth.ok) {
-        setBoot({ kind: 'error', error: auth.error });
+      if (!conn.ok) {
+        setBoot({ kind: 'error', error: conn.error });
         return;
       }
-      const hasToken = auth.data.connections.length > 0;
-      if (!hasToken || !auth.data.hostPermission) {
-        setBoot({ kind: 'no-setup', hasToken, hostPermission: auth.data.hostPermission });
+      const hasConnection = conn.data.connections.length > 0;
+      if (!hasConnection || !conn.data.hostPermission) {
+        setBoot({ kind: 'no-setup', hasConnection, hostPermission: conn.data.hostPermission });
         return;
       }
       const first = list[0];
@@ -184,7 +184,7 @@ export function App() {
       const resumePreset = resumable ? list.find((p) => p.id === resumable.presetId) : undefined;
       const selected = resumePreset ?? list.find((p) => p.id === lastId) ?? first;
       setPresetId(selected.id);
-      setBoot({ kind: 'ready', presets: list, tab: tabInfo, connections: auth.data.connections });
+      setBoot({ kind: 'ready', presets: list, tab: tabInfo, connections: conn.data.connections });
 
       if (resumable && resumePreset) {
         const res = await sendRequest({ type: 'job/get', jobId: resumable.jobId });
@@ -490,7 +490,7 @@ export function App() {
     return (
       <main class="sc-popup popup">
         <NoSetup
-          hasToken={boot.hasToken}
+          hasConnection={boot.hasConnection}
           hostPermission={boot.hostPermission}
           onGrant={() => {
             const request = requestNotionPermission();
@@ -654,6 +654,7 @@ export function App() {
         {values ? (
           <CaptureForm
             preset={preset}
+            connectionId={connectionId ?? undefined}
             schema={schemaData}
             values={values}
             onChange={onFieldChange}

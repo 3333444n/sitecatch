@@ -6,6 +6,7 @@ import { createConnectionHandlers } from './connections';
 import { createDataSourceHandlers } from './dataSources';
 import { createDuplicateHandlers } from './duplicates';
 import { createJobHandlers } from './jobs';
+import { createPageHandlers } from './pages';
 import { createSaveHandlers } from './save';
 
 export function createHandlers(deps: BackgroundDeps): Handlers {
@@ -13,6 +14,7 @@ export function createHandlers(deps: BackgroundDeps): Handlers {
   return {
     ...createConnectionHandlers(deps, clients),
     ...createDataSourceHandlers(deps, clients),
+    ...createPageHandlers(deps, clients),
     ...createCaptureHandlers(deps),
     ...createDuplicateHandlers(deps, clients),
     ...createSaveHandlers(deps, clients),

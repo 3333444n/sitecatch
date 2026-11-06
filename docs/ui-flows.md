@@ -40,11 +40,12 @@ If there are no presets yet: "Create your first preset" → opens Options → Pr
 ### Form
 
 - Thumbnail of the screenshot, if the preset uses one, plus the page title/domain.
-- One field per **visible mapping**: every `ask` mapping, plus `extractor`/`static` mappings with `editableInPopup`. The input matches the property type (Text, Url, Number, Checkbox, Date, Select, MultiSelect with "create option", Status).
+- One field per **visible mapping**: every `ask` mapping, plus `extractor`/`static` mappings with `editableInPopup`. The input matches the property type (Text, Url, Number, Checkbox, Date, Select, MultiSelect with "create option", Status, Relation).
 - Pre-filled from extractors (primary → fallbacks), `ask.default`, or the static value.
 - Mappings that aren't shown as fields (non-editable extractor/static) are listed in a compact read-only summary, e.g. "URL → https://example.com/…".
 - `required` ask fields block **Save** until filled; the footer says which fields are missing.
 - **Save** stays disabled while capturing, loading the schema, or checking for duplicates. Its label is "Save to *Database*" (or "Save as duplicate" when duplicates were found). **Ctrl/⌘ + Enter** saves from anywhere; the first editable field gets focus.
+- **Relation** fields use the `RelationPicker`: a combobox that searches the related database (`pages/search`, debounced 250 ms, title contains the query; recently edited pages first when empty). Linked pages show as chips with a remove button; ↑/↓ move, Enter links or unlinks the highlighted page, Backspace on an empty input removes the last chip, Esc closes. Search uses the preset's connection. The list shows *Searching…*, "No pages match …" ("The linked database has no pages yet." when empty), or the error with **Try again** (e.g. `db-not-shared` when the token can't open the related database). If the schema doesn't name the related database, the field is read-only and says "Can't search: Sitecatch can't see the database this relation links to…". With an internal connection, both the target database and the related one must be shared, otherwise the picker ends up in one of these "can't see" states. Non-editable relations appear in the read-only summary by page title.
 - Capture warnings (e.g. "Screenshot was downscaled") appear as small notes.
 - **Preset issues** ([preset-model.md](./preset-model.md#validation)): blocking issues disable Save and show **Edit preset**. Non-blocking ones (renamed, select option will be created, "Duplicate check is off: …" when the dedupe property was deleted or changed type) show as a dismissible notice.
 
@@ -138,7 +139,7 @@ Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, work
    - **From the page**: extractor dropdown of `compatibleExtractors(type)` (label + description as hint), optional **Fallback**, **Editable in popup** toggle. The `screenshot` extractor is never offered.
    - **Ask in popup**: optional default via `PropertyInput`, **Required** toggle (ask fields always show in the popup).
    - **Fixed value**: `PropertyInput`, required; **Editable in popup** toggle.
-   - Sources offered per type: `files` → page only (favicon / og:image); `number`, `checkbox`, `status`, `email`, `phone_number` → ask / fixed.
+   - Sources offered per type: `files` → page only (favicon / og:image); `number`, `checkbox`, `status`, `email`, `phone_number`, `relation` → ask / fixed. A relation's fixed value and ask default use the same `RelationPicker` as the popup.
    - Read-only property types are listed muted under "Can't be filled by Sitecatch" with a reason. Mappings whose property is gone are listed under "Not in this database" with **Remove**.
 3. **Screenshot, cover and icon**: **Attach screenshot to** (none or a `files` property: `preset.screenshot.filesPropertyId` is the single canonical way; that property's row shows "Gets the screenshot" and any mapping on it is removed), **Page cover** (none / screenshot / og:image), **Add screenshot to the page body**, **Page icon** (none / favicon).
 4. **Duplicate detection**: a url / text / title property or **Off** (new presets default to the first url property).

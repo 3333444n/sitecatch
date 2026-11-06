@@ -6,10 +6,16 @@ All notable changes to Sitecatch are documented here. The format follows [Keep a
 
 ### Added
 
+- **Multiple workspace connections.** Connect several Notion workspaces, each with its own token (`local:connections`, one connection per workspace, keyed by the workspace id when Notion reports it). Each preset owns its workspace (`Preset.connectionId`); there is no global workspace switcher. The popup groups presets by workspace when more than one is connected, and Options → Workspaces lists connections, removes them, and assigns presets that need a workspace. Decision: [ADR 0010](docs/decisions/0010-multiple-workspace-connections.md).
+- **Relation properties.** `relation` properties can be filled with a fixed set of pages or asked in the popup, using a searchable page picker over the relation's target database (new `pages/search` message, at most 25 results). Ids are deduplicated and capped at 100 per property, with a warning. Details: [docs/preset-model.md](docs/preset-model.md#relations).
 - `pnpm sign:firefox`: builds and signs the Firefox `.xpi` on AMO's unlisted channel. It reads the AMO keys from the environment or `.env.local` (template: `.env.example`), never prints them, and supports `--dry-run`. Guide: [docs/releasing.md](docs/releasing.md).
 
 ### Changed
 
+- Presets move to schema version 2 (`connectionId`, `workspaceName`). v1 presets, including imported JSON, migrate automatically with `connectionId: null` and use the only connection while there is exactly one; adding a second workspace pins them to the first.
+- The v0.1 token in `local:auth` is copied once into `local:connections` on upgrade. The original is kept so a downgrade still works, and is cleared when that workspace is removed.
+- Message protocol: `auth/validate`, `auth/status` and `auth/clear` became `conn/add`, `conn/list` and `conn/remove`. `ds/list` and `ds/schema` take a `connectionId`; `dup/check` and `save/start` use the preset's connection.
+- **Mixed versions:** a preset saved by this version (schema v2) is rejected by v0.1 on another synced device with "made with a newer version of Sitecatch — update the extension". Nothing is deleted; update every device. v1 presets stay v1 in sync until they are edited or a second workspace is added.
 - The Firefox add-on id `sitecatch@sitecatch.app` is final. v0.1.0 was signed under it on AMO's unlisted channel (2026-10-18).
 
 ## [0.1.0] - 2026-10-18

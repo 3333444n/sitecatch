@@ -40,6 +40,6 @@
     "email": { "id": "email", "name": "Contact", "type": "email" },
     "phone": { "id": "phone", "name": "Phone", "type": "phone_number" },
     "created": { "id": "created", "name": "Created", "type": "created_time" },
-    "rel": { "id": "rel", "name": "Related", "type": "relation" }
+    "rel": { "id": "rel", "name": "Related", "type": "relation", "relation": { "dataSourceId": "ds-projects" } }
   }
 }

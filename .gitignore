@@ -6,6 +6,7 @@ node_modules
 !.env.example
 .claude/settings.local.json
 *.zip
+*.xpi
 web-ext-artifacts
 coverage
 .DS_Store
