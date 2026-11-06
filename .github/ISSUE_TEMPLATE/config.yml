@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/3333444n/sitecatch/security/advisories/new
+    about: Please report vulnerabilities privately, not in a public issue.
+  - name: Setup help (docs)
+    url: https://github.com/3333444n/sitecatch/blob/main/docs/setup-guide.md
+    about: Token, sharing and troubleshooting steps for connecting Notion.
