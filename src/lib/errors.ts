@@ -9,18 +9,21 @@
 
 /** Stable, machine-readable error codes. UI and tests switch on these. */
 export type AppErrorCode =
-  /** No Notion integration token saved yet. */
+  /**
+   * No usable token: nothing connected yet, or the preset's workspace isn't
+   * connected on this device (or it has none while several are connected).
+   */
   | 'no-token'
   /** Notion rejected the token (HTTP 401) — revoked, mistyped, or wrong workspace. */
   | 'invalid-token'
   /** The user has not granted access to https://api.notion.com/* (optional host permission). */
   | 'no-host-permission'
   /**
-   * The integration lacks a capability for this operation (HTTP 403 /
+   * The token lacks a capability for this operation (HTTP 403 /
    * restricted_resource) — e.g. "Insert content" is disabled in its settings.
    */
   | 'missing-capability'
-  /** Database/data source not found or not shared with the integration (HTTP 404 / object_not_found). */
+  /** Database/data source not found or not visible to the token, e.g. not shared with the connection (HTTP 404 / object_not_found). */
   | 'db-not-shared'
   /** Notion rejected the request body (HTTP 400 validation_error) or local input is invalid. */
   | 'validation'
@@ -41,9 +44,9 @@ export type AppErrorCode =
 
 /** A UI affordance suggested to recover from the error. */
 export type AppErrorAction =
-  /** Open the options page setup wizard (token missing/invalid). */
+  /** Open the options page at #/setup (setup wizard, or Workspaces once connected) — token missing/invalid. */
   | 'open-setup'
-  /** Show instructions to share the database with the integration (••• → Connections). */
+  /** Show instructions to share the database with the connection (••• → Connections). */
   | 'reshare-db'
   /** The same operation may succeed if retried. */
   | 'retry'
