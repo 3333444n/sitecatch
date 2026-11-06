@@ -2,12 +2,13 @@
 import { useMemo, useState } from 'preact/hooks';
 import type { AppError } from '@/lib/errors';
 import { sendRequest } from '@/lib/messaging/client';
+import type { ConnectionSummary } from '@/lib/messaging/protocol';
 import type { DataSourceSchema, DataSourceSummary } from '@/lib/notion/types';
 import { savePreset } from '@/lib/presets/storage';
 import type { Mapping, Preset, PresetIssue } from '@/lib/presets/types';
 import { refreshPropertyNames } from '@/lib/presets/validate';
 import { Banner, Button, Card, ErrorBanner, Field, Select, TextInput, Toast, Toggle } from '@/ui/components';
-import { authStatus } from '../lib/auth';
+import { connectionsStatus, workspaceName } from '../lib/connections';
 import { navigate, useUnsavedChangesGuard } from '../lib/router';
 import { DatabaseList } from '../setup/DatabaseList';
 import {
@@ -24,10 +25,13 @@ import {
   writableProperties,
 } from './editor-model';
 import { PropertyRow } from './PropertyRow';
+import { WorkspacePicker } from './WorkspacePicker';
 
 export interface PresetEditorProps {
   preset: Preset;
   schema: DataSourceSchema;
+  /** The workspace the preset resolves to here (reads its schema with this token). */
+  connection: ConnectionSummary;
   /** Not saved yet (created from "New preset"). */
   isNew?: boolean;
 }
@@ -47,7 +51,12 @@ const READ_ONLY_REASON: Record<string, string> = {
   unsupported: 'Not supported by Sitecatch yet',
 };
 
-export function PresetEditor({ preset: initial, schema: initialSchema, isNew = false }: PresetEditorProps) {
+export function PresetEditor({
+  preset: initial,
+  schema: initialSchema,
+  connection: initialConnection,
+  isNew = false,
+}: PresetEditorProps) {
   const [saved, setSaved] = useState<Preset | null>(isNew ? null : initial);
   const [draft, setDraft] = useState<Preset>(initial);
   const [schema, setSchema] = useState<DataSourceSchema>(initialSchema);
@@ -58,6 +67,11 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
   const [changingDb, setChangingDb] = useState(false);
   const [dbBusy, setDbBusy] = useState<string | null>(null);
   const [dbError, setDbError] = useState<AppError | null>(null);
+  const [connection, setConnection] = useState<ConnectionSummary>(initialConnection);
+  /** While changing the database: the workspace whose databases are listed. */
+  const [browseConnection, setBrowseConnection] = useState<ConnectionSummary>(initialConnection);
+  const [pickingWorkspace, setPickingWorkspace] = useState(false);
+  const allConnections = connectionsStatus.value?.connections ?? [];
 
   const dirty = saved === null || JSON.stringify(saved) !== JSON.stringify(draft);
   useUnsavedChangesGuard(dirty);
@@ -82,7 +96,9 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
   async function onSave() {
     setSaving(true);
     setSaveError(null);
-    const toSave = normalizeForSave(refreshPropertyNames(draft, schema));
+    // Pin the workspace explicitly (an unassigned preset resolved to the only one).
+    const pinned: Preset = { ...draft, connectionId: connection.id, workspaceName: connection.workspaceName };
+    const toSave = normalizeForSave(refreshPropertyNames(pinned, schema));
     const res = await savePreset(toSave);
     setSaving(false);
     if (!res.ok) {
@@ -99,15 +115,24 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
   async function pickDatabase(ds: DataSourceSummary) {
     setDbBusy(ds.id);
     setDbError(null);
-    const res = await sendRequest({ type: 'ds/schema', dataSourceId: ds.id, force: true });
+    const target = browseConnection;
+    const res = await sendRequest({ type: 'ds/schema', connectionId: target.id, dataSourceId: ds.id, force: true });
     setDbBusy(null);
     if (!res.ok) {
       setDbError(res.error);
       return;
     }
     setSchema(res.data);
-    update((p) => ({ ...p, dataSourceId: ds.id, dataSourceName: res.data.name || ds.name }));
+    setConnection(target);
+    update((p) => ({
+      ...p,
+      connectionId: target.id,
+      workspaceName: target.workspaceName,
+      dataSourceId: ds.id,
+      dataSourceName: res.data.name || ds.name,
+    }));
     setChangingDb(false);
+    setPickingWorkspace(false);
   }
 
   return (
@@ -131,6 +156,42 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
               }}
             />
           </Field>
+          <Field label="Workspace" group>
+            <div class="sco-db-row">
+              <span class="sco-db-row__name">{workspaceName(connection)}</span>
+              {allConnections.length > 1 && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  aria-expanded={pickingWorkspace ? 'true' : 'false'}
+                  aria-label="Change workspace"
+                  onClick={() => {
+                    setPickingWorkspace(!pickingWorkspace);
+                    setChangingDb(false);
+                  }}
+                >
+                  {pickingWorkspace ? 'Cancel' : 'Change'}
+                </Button>
+              )}
+            </div>
+          </Field>
+          {pickingWorkspace && (
+            <div class="sco-db-change">
+              <p class="sco-muted">
+                Pick the workspace, then a database in it. Each workspace uses its own token.
+              </p>
+              <WorkspacePicker
+                connections={allConnections}
+                currentId={connection.id}
+                onPick={(c) => {
+                  setBrowseConnection(c);
+                  setPickingWorkspace(false);
+                  setDbError(null);
+                  setChangingDb(true);
+                }}
+              />
+            </div>
+          )}
           <Field label="Database" group>
             <div class="sco-db-row">
               <span class="sco-db-row__name">{draft.dataSourceName}</span>
@@ -138,8 +199,11 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
                 size="sm"
                 variant="ghost"
                 aria-expanded={changingDb ? 'true' : 'false'}
+                aria-label={changingDb ? 'Cancel changing database' : 'Change database'}
                 onClick={() => {
+                  if (!changingDb) setBrowseConnection(connection);
                   setChangingDb(!changingDb);
+                  setPickingWorkspace(false);
                 }}
               >
                 {changingDb ? 'Cancel' : 'Change'}
@@ -149,11 +213,18 @@ export function PresetEditor({ preset: initial, schema: initialSchema, isNew = f
           {changingDb && (
             <div class="sco-db-change">
               <p class="sco-muted">
-                Pick another database. Mappings are kept by property id, so properties that don’t exist there will be
-                flagged below.
+                Pick another database
+                {browseConnection.id !== connection.id ? ` in “${workspaceName(browseConnection)}”` : ''}. Mappings are
+                kept by property id, so properties that don’t exist there will be flagged below.
               </p>
               {dbError && <ErrorBanner error={dbError} />}
-              <DatabaseList tokenKind={authStatus.value?.tokenKind ?? 'personal'} onPick={(ds) => void pickDatabase(ds)} busyId={dbBusy} />
+              <DatabaseList
+                key={browseConnection.id}
+                connectionId={browseConnection.id}
+                tokenKind={browseConnection.tokenKind}
+                onPick={(ds) => void pickDatabase(ds)}
+                busyId={dbBusy}
+              />
             </div>
           )}
         </div>

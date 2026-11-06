@@ -1,18 +1,17 @@
 import { cleanup, render, screen } from '@testing-library/preact';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { ok } from '@/lib/errors';
 import { App } from './App';
-import { authStatus } from './lib/auth';
+import { connectionsStatus } from './lib/connections';
 import { navigate, parseHash, resetRouterForTests } from './lib/router';
-import { mockBackend, mockPermissionContains } from './test/mock-backend';
+import { connList, mockBackend, mockPermissionContains } from './test/mock-backend';
 
 vi.mock('@/lib/messaging/client', () => ({ sendRequest: vi.fn() }));
 
 beforeEach(() => {
   fakeBrowser.reset();
   resetRouterForTests();
-  authStatus.value = null;
+  connectionsStatus.value = null;
   mockPermissionContains(() => Promise.resolve(true));
 });
 
@@ -39,11 +38,11 @@ describe('parseHash', () => {
 
 describe('App routing', () => {
   it('opens setup by default when there is no token', async () => {
-    mockBackend({ 'auth/status': () => ok({ hasToken: false, hostPermission: false }) });
+    mockBackend({ 'conn/list': connList([], false) });
     render(<App />);
     expect(await screen.findByRole('heading', { level: 1, name: 'Set up Sitecatch' })).toBeTruthy();
     expect(location.hash).toBe('#/setup');
-    expect(screen.getByRole('link', { name: 'Setup' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('link', { name: 'Workspaces' }).getAttribute('aria-current')).toBe('page');
   });
 
   it('opens presets by default when connected, and navigates between sections', async () => {

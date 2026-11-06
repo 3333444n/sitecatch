@@ -5,8 +5,8 @@ import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { listPresets, savePreset } from '@/lib/presets/storage';
 import { allResourcesMappings, makePreset } from '@/lib/presets/testing';
 import { settingsItem } from '@/lib/storage/items';
-import { authStatus } from '../lib/auth';
-import { mockBackend } from '../test/mock-backend';
+import { connectionsStatus } from '../lib/connections';
+import { ACME, GLOBEX, mockBackend } from '../test/mock-backend';
 import { exportFileName, planImport, previewImport } from './import-plan';
 import { ImportExport } from './ImportExport';
 import { SettingsPage } from './SettingsPage';
@@ -113,10 +113,9 @@ describe('export / import', () => {
 });
 
 describe('settings page', () => {
-  it('saves capture delay and quality, shows the account and disconnects', async () => {
-    authStatus.value = { hasToken: true, tokenKind: 'personal', hostPermission: true, workspaceName: 'Acme' };
-    const send = mockBackend({ 'auth/status': () => ({ ok: true, data: { hasToken: false, hostPermission: true } }) });
-    vi.stubGlobal('confirm', vi.fn(() => true));
+  it('saves capture delay and quality and shows the connected workspace', async () => {
+    connectionsStatus.value = { hostPermission: true, connections: [ACME] };
+    mockBackend();
     render(<SettingsPage />);
     const delay = await screen.findByLabelText('Wait before taking the screenshot');
     // Range inputs: set the value and fire input.
@@ -127,11 +126,17 @@ describe('settings page', () => {
     });
     expect(screen.getByText('2.5 s')).toBeTruthy();
 
+    expect(screen.getByText(/Acme · Personal access token · as Sitecatch/)).toBeTruthy();
+    expect(screen.getByText(/Tokens never sync/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Manage workspaces' })).toBeTruthy();
+  });
+
+  it('lists every workspace when several are connected', () => {
+    connectionsStatus.value = { hostPermission: true, connections: [ACME, GLOBEX] };
+    mockBackend();
+    render(<SettingsPage />);
     expect(screen.getByText('Acme')).toBeTruthy();
-    expect(screen.getByText('Personal access token')).toBeTruthy();
-    expect(screen.getByText(/Your token never syncs/)).toBeTruthy();
-    await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
-    expect(send).toHaveBeenCalledWith({ type: 'auth/clear' });
-    expect(await screen.findByText(/Not connected/)).toBeTruthy();
+    expect(screen.getByText('Globex')).toBeTruthy();
+    expect(screen.getByText(/Internal connection · as Sitecatch bot/)).toBeTruthy();
   });
 });

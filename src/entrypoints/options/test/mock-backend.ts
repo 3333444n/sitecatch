@@ -6,16 +6,36 @@ import { vi, type MockInstance } from 'vitest';
 import { browser } from 'wxt/browser';
 import { err, ok, type AppError, type Result } from '@/lib/errors';
 import { sendRequest } from '@/lib/messaging/client';
-import type { Request, RequestType, Response } from '@/lib/messaging/protocol';
+import type { ConnectionSummary, Request, RequestType, Response } from '@/lib/messaging/protocol';
 import type { DataSourceSchema, DataSourceSummary } from '@/lib/notion/types';
 
 export type FakeHandlers = {
   [K in RequestType]?: (req: Request<K>) => Result<Response<K>> | Promise<Result<Response<K>>>;
 };
 
+export const ACME: ConnectionSummary = {
+  id: 'ws-acme',
+  tokenKind: 'personal',
+  botName: 'Sitecatch',
+  workspaceName: 'Acme',
+  validatedAt: '2026-10-18T11:00:00.000Z',
+};
+export const GLOBEX: ConnectionSummary = {
+  id: 'ws-globex',
+  tokenKind: 'connection',
+  botName: 'Sitecatch bot',
+  workspaceName: 'Globex',
+  validatedAt: '2026-10-18T11:00:00.000Z',
+};
+
+/** A `conn/list` handler answering with these connections. */
+export function connList(connections: ConnectionSummary[], hostPermission = true): FakeHandlers['conn/list'] {
+  return () => ok({ hostPermission, connections });
+}
+
 const DEFAULTS: FakeHandlers = {
-  'auth/status': () => ok({ hasToken: true, tokenKind: 'personal', hostPermission: true, workspaceName: 'Acme' }),
-  'auth/clear': () => ok(null),
+  'conn/list': connList([ACME]),
+  'conn/remove': () => ok(null),
   'ds/list': () => ok([]),
 };
 
