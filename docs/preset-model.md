@@ -35,7 +35,7 @@ The screenshot is uploaded **at most once per save** and reused for the files pr
 | `source` | `ValueSource` (below). |
 | `editableInPopup` | Show the field in the popup form so the value can be tweaked before saving. |
 
-Writable property types (v0): `title`, `rich_text`, `number`, `select`, `multi_select`, `status`, `date`, `files`, `checkbox`, `url`, `email`, `phone_number`. All other types (relation, people, formula, rollup, created/edited time/by, unique_id, verification, button, unknown) are read-only to Sitecatch and can't be mapped.
+Writable property types: `title`, `rich_text`, `number`, `select`, `multi_select`, `status`, `date`, `files`, `checkbox`, `url`, `email`, `phone_number`, `relation`. All other types (people, formula, rollup, created/edited time/by, unique_id, verification, button, unknown) are read-only to Sitecatch and can't be mapped.
 
 ### Value sources
 
@@ -60,6 +60,7 @@ The popup form state is `FormValues`: a record keyed by property id. Each entry 
 | `multi_select` | `multi_select` | option names |
 | `date` | `date` | `{ start, end? } \| null` |
 | `files` | `files` | `FileRef[]`: `{kind:'screenshot'}` or `{kind:'external', url, name?}` |
+| `relation` | `relation` | `RelationRef[]`: `{ id, title }` per linked page. Only `id` is written; `title` is a display snapshot for chips and summaries. |
 
 `StaticValue` and `ask.default` use the same shape.
 
@@ -75,7 +76,7 @@ Each extractor declares an output `ValueKind`. A mapping from an extractor is al
 | `date` | `dateSaved` | `date` |
 | `image` | `favicon`, `ogImage` (and `screenshot`, see below) | `files` |
 
-`number`, `checkbox`, `status`, `email` and `phone_number` have no compatible extractor in v0. They can be filled from `ask` or `static` only.
+`number`, `checkbox`, `status`, `email`, `phone_number` and `relation` have no compatible extractor. They can be filled from `ask` or `static` only.
 
 Conversions:
 
@@ -83,6 +84,15 @@ Conversions:
 - List → `rich_text` joins the items with `, `.
 - Image → `files`: `favicon` and `ogImage` become external files.
 - Dates: `date` values that include a time but no UTC offset (the popup's date-time input, `dateSaved`) get the **local UTC offset** appended (`withUtcOffset`, DST-aware), because Notion treats an offset-less date-time as UTC. Date-only values and values that already carry an offset are left alone.
+
+### Relations
+
+A `relation` property links pages of another data source (its target, `PropertySchema.relation.dataSourceId`, read from the live schema). Both sources work:
+
+- `static`: the preset editor's page picker chooses one or more pages that every save links (e.g. Projects = "Kineo Website"). An empty fixed relation blocks saving the preset, like any empty fixed value.
+- `ask`: the popup shows the same searchable picker. `default` pre-selects pages; `required` blocks Save until at least one page is linked.
+
+The picker searches the target with `pages/search` ([notion-api.md](./notion-api.md#relations)). On save the ids are deduplicated and capped at **100 per property** (Notion's per-request limit; a warning says so). An empty relation is omitted, in create and update mode alike, like every other empty value, so an update never clears links the page already has.
 
 ## Validation
 
@@ -94,6 +104,8 @@ Every time the popup opens (`ds/schema`) and again right before saving (save pip
 | `renamed` | Same id, different name than `propertyName`. | No. The mapping keeps working. Informational notice, and the editor updates the snapshot on next save. |
 | `type-changed` | The property's type differs from `propertyType`. | **Yes**, until the mapping is fixed. |
 | `option-missing` | A `static` value or `ask.default` refers to a select / multi-select / status option that no longer exists. | `select`/`multi_select`: **no**, Notion creates the option on save (warning shown). `status`: **yes**, because the API can't create status options. |
+
+Relations get the same `missing` / `type-changed` checks. If the relation is pointed at a **different target database** in Notion, the linked page ids stored in a `static` value or `ask.default` may no longer belong to it. A preset keeps no snapshot of the target (`Mapping` has no field for it), so validation can't detect this up front; Notion rejects the write with a `validation_error`, which the save reports as `validation` with **Edit preset** (blocking at save time). Re-pick the pages in the editor to fix it.
 
 The same checks cover the non-mapping references:
 

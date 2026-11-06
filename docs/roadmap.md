@@ -15,6 +15,8 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source or as a signe
 
 ## Next
 
+- **Relation properties** (unreleased): link pages of a related database from a fixed value or a popup picker ([preset-model.md](./preset-model.md#relations)).
+
 - Finish the manual E2E: Chrome smoke test, internal connection path, restricted pages, popup closed mid-save, import/export, the old `notion.so/profile/integrations` redirect.
 - Capture the setup screenshots setup-1…13 into `public/setup/` ([checklist](./setup-guide.md#screenshots-to-capture)). Until then the wizard shows "Screenshot coming soon".
 

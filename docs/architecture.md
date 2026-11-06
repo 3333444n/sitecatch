@@ -12,7 +12,7 @@ flowchart LR
   end
   subgraph BG["Background (event page / service worker)"]
     R[router.ts]
-    H[handlers/<br/>connections · dataSources · capture<br/>duplicates · save · jobs]
+    H[handlers/<br/>connections · dataSources · pages · capture<br/>duplicates · save · jobs]
     SP[save-pipeline.ts]
   end
   subgraph LIB["src/lib (pure-ish modules)"]
@@ -68,6 +68,9 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 | `conn/remove` | `{ connectionId }` | `null` | Forgets one connection's token and clears the session schema cache. Presets bound to it stay (they show as needing a workspace). Also clears the legacy `local:auth` copy when it held that token (or when no connections remain). |
 | `ds/list` | `{ connectionId, query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources, with that connection's token. |
 | `ds/schema` | `{ connectionId, dataSourceId, force? }` | `DataSourceSchema` | Read with that connection's token. Cached in `session:schema:<id>` for 5 minutes unless `force` (data source ids are globally unique, so the key has no connection). |
+
+| `pages/search` | `{ connectionId, dataSourceId, query? }` | `PageOption[]` | Relation picker, with that connection's token. Reads the target's (cached) schema for its title property, then `POST /v1/data_sources/{id}/query` (title `contains`, newest edit first), at most `PAGE_OPTIONS_LIMIT` (25). |
+
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
 | `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | Uses the preset's connection ([workspaces](#workspaces-connections)); unresolved → `no-token` / `edit-preset`. No dedupe property, or one that the live schema no longer has as `url` / `rich_text` / `title` ("Duplicate check is off") → `{ matches: [] }` without a query. Otherwise queries the dedupe property (by its live type) for `urlVariants(url)` — the normalized URL **or** the raw one. |
 | `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | The connection comes from the preset. Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
