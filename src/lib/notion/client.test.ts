@@ -62,11 +62,25 @@ describe('request headers', () => {
 });
 
 describe('getMe', () => {
-  it('maps bot name, workspace name and upload limit', async () => {
+  it('maps bot name, workspace name/id and upload limit', async () => {
     const { client } = setup([jsonResponse(usersMe)]);
     expect(await client.getMe()).toEqual({
       ok: true,
-      data: { botName: 'Sitecatch', workspaceName: "Kicke's Workspace", maxFileUploadBytes: 5242880 },
+      data: {
+        botName: 'Sitecatch',
+        workspaceName: "Kicke's Workspace",
+        workspaceId: '0c7a4c28-5b51-4f2a-9b0f-1d2f3c4b5a69',
+        maxFileUploadBytes: 5242880,
+      },
+    });
+  });
+
+  it('omits workspaceId when Notion does not report one (personal-token style bot)', async () => {
+    const bot = { owner: { type: 'user', user: { object: 'user', id: 'u1' } }, workspace_name: null };
+    const { client } = setup([jsonResponse({ ...usersMe, bot })]);
+    expect(await client.getMe()).toEqual({
+      ok: true,
+      data: { botName: 'Sitecatch', workspaceName: null },
     });
   });
 
