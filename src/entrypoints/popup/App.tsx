@@ -1,5 +1,5 @@
 /**
- * Popup controller: auth check → preset picker → parallel capture / schema /
+ * Popup controller: connections check → preset picker (grouped by workspace) → parallel capture / schema /
  * duplicate check → editable form → background save with live job status.
  * All Notion and capture work happens in the background via `sendRequest()`.
  */
@@ -8,8 +8,9 @@ import { browser } from 'wxt/browser';
 import type { AppError, AppErrorAction } from '@/lib/errors';
 import type { CaptureResult } from '@/lib/extract/types';
 import { sendRequest } from '@/lib/messaging/client';
-import type { JobStatus, SaveMode } from '@/lib/messaging/protocol';
+import type { ConnectionSummary, JobStatus, SaveMode } from '@/lib/messaging/protocol';
 import type { DataSourceSchema, DuplicateMatch } from '@/lib/notion/types';
+import { resolvePresetConnection } from '@/lib/presets/connection';
 import { resolveInitialValues } from '@/lib/presets/resolve';
 import { listPresets } from '@/lib/presets/storage';
 import type { FormValue, FormValues, Preset } from '@/lib/presets/types';
@@ -49,7 +50,7 @@ type Boot =
   | { kind: 'error'; error: AppError }
   | { kind: 'no-setup'; hasToken: boolean; hostPermission: boolean }
   | { kind: 'no-presets' }
-  | { kind: 'ready'; presets: Preset[]; tab: TabInfo };
+  | { kind: 'ready'; presets: Preset[]; tab: TabInfo; connections: ConnectionSummary[] };
 
 type SaveState =
   | { kind: 'idle' }
@@ -88,6 +89,8 @@ function fallbackCapture(tab: TabInfo, error: AppError): CaptureResult {
   };
 }
 
+const NO_CONNECTIONS: ConnectionSummary[] = [];
+
 const LOST_JOB: AppError = {
   code: 'unknown',
   message: 'The save stopped without reporting a result. Check your Notion database, then try again.',
@@ -116,6 +119,7 @@ export function App() {
 
   const presets = boot.kind === 'ready' ? boot.presets : [];
   const tab = boot.kind === 'ready' ? boot.tab : null;
+  const connections = boot.kind === 'ready' ? boot.connections : NO_CONNECTIONS;
   const preset = presets.find((p) => p.id === presetId) ?? null;
 
   // ---- job tracking ------------------------------------------------------
@@ -147,7 +151,7 @@ export function App() {
     [],
   );
 
-  // ---- boot: auth, presets, tab, last job ----------------------------------
+  // ---- boot: connections, presets, tab, last job ---------------------------
 
   useEffect(() => {
     let live = true;
@@ -155,7 +159,7 @@ export function App() {
     setBoot({ kind: 'checking' });
     void (async () => {
       const [auth, list, lastId, tabInfo, lastJob] = await Promise.all([
-        sendRequest({ type: 'auth/status' }),
+        sendRequest({ type: 'conn/list' }),
         listPresets().catch((): Preset[] => []),
         getLastPresetId().catch(() => null),
         activeTab(),
@@ -166,8 +170,9 @@ export function App() {
         setBoot({ kind: 'error', error: auth.error });
         return;
       }
-      if (!auth.data.hasToken || !auth.data.hostPermission) {
-        setBoot({ kind: 'no-setup', hasToken: auth.data.hasToken, hostPermission: auth.data.hostPermission });
+      const hasToken = auth.data.connections.length > 0;
+      if (!hasToken || !auth.data.hostPermission) {
+        setBoot({ kind: 'no-setup', hasToken, hostPermission: auth.data.hostPermission });
         return;
       }
       const first = list[0];
@@ -179,7 +184,7 @@ export function App() {
       const resumePreset = resumable ? list.find((p) => p.id === resumable.presetId) : undefined;
       const selected = resumePreset ?? list.find((p) => p.id === lastId) ?? first;
       setPresetId(selected.id);
-      setBoot({ kind: 'ready', presets: list, tab: tabInfo });
+      setBoot({ kind: 'ready', presets: list, tab: tabInfo, connections: auth.data.connections });
 
       if (resumable && resumePreset) {
         const res = await sendRequest({ type: 'job/get', jobId: resumable.jobId });
@@ -228,17 +233,24 @@ export function App() {
   // ---- schema per data source ---------------------------------------------
 
   const dataSourceId = preset?.dataSourceId ?? null;
+  // The preset's workspace (each preset owns one); unresolved → actionable error, no request.
+  const presetConn = useMemo(() => (preset ? resolvePresetConnection(preset, connections) : null), [preset, connections]);
+  const connectionId = presetConn?.ok ? presetConn.data.id : null;
   useEffect(() => {
-    if (!dataSourceId) return;
+    if (!dataSourceId || !presetConn) return;
+    if (!presetConn.ok) {
+      setSchema({ status: 'error', error: presetConn.error });
+      return;
+    }
     let live = true;
     setSchema({ status: 'loading' });
-    void sendRequest({ type: 'ds/schema', dataSourceId }).then((res) => {
+    void sendRequest({ type: 'ds/schema', connectionId: presetConn.data.id, dataSourceId }).then((res) => {
       if (live) setSchema(res.ok ? { status: 'ok', data: res.data } : { status: 'error', error: res.error });
     });
     return () => {
       live = false;
     };
-  }, [dataSourceId, schemaNonce]);
+  }, [dataSourceId, connectionId, presetConn?.ok, schemaNonce]);
 
   const schemaData = schema.status === 'ok' ? schema.data : null;
   const issues = useMemo(() => (preset && schemaData ? validatePreset(preset, schemaData) : []), [preset, schemaData]);
@@ -501,7 +513,7 @@ export function App() {
   const header = (
     <header class="popup-header">
       <span class="popup-brand">Sitecatch</span>
-      <PresetPicker presets={presets} value={preset.id} disabled={saving} onChange={onPresetChange} />
+      <PresetPicker presets={presets} connections={connections} value={preset.id} disabled={saving} onChange={onPresetChange} />
     </header>
   );
 
