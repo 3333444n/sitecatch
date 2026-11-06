@@ -1,12 +1,11 @@
 /**
  * Notion workspace connections (`local:connections`): the one-time migration
- * from the v0.1 single token (`local:auth`), pure list updates, and the single
- * rule that decides which connection a preset uses. Background-only: this is
- * the only module besides the handlers that touches tokens.
+ * from the v0.1 single token (`local:auth`) and pure list updates. The rule
+ * that decides which connection a preset uses lives in
+ * `@/lib/presets/connection` (shared with the UI). Background-only: this is the
+ * only module besides the handlers that touches tokens.
  */
-import { err, ok, type Result } from '@/lib/errors';
 import type { ConnectionSummary } from '@/lib/messaging/protocol';
-import type { Preset } from '@/lib/presets/types';
 import { authItem, connectionsItem, type Connection } from '@/lib/storage/items';
 
 /** Prefix of ids given to connections migrated from v0.1 (whose workspace id wasn't stored). */
@@ -119,38 +118,4 @@ export async function findLegacyMatch(
   return undefined;
 }
 
-function workspaceLabel(name: string | null): string {
-  return name ? `“${name}”` : 'this preset’s';
-}
-
-/**
- * The connection a preset reads and writes with:
- *   - `connectionId` set and connected here → that connection;
- *   - `connectionId` null and exactly one connection → the only one;
- *   - otherwise unresolved → `no-token` with a message saying what to do.
- */
-export function resolvePresetConnection(
-  preset: Pick<Preset, 'name' | 'connectionId' | 'workspaceName'>,
-  connections: readonly Connection[],
-): Result<Connection> {
-  if (connections.length === 0) {
-    return err('no-token', 'Connect Sitecatch to Notion first: open setup and paste your token.', {
-      action: 'open-setup',
-    });
-  }
-  if (preset.connectionId === null) {
-    if (connections.length === 1) return ok(connections[0] as Connection);
-    return err(
-      'no-token',
-      `The preset “${preset.name}” isn’t linked to a workspace yet. Open it in Sitecatch settings and pick a workspace.`,
-      { action: 'edit-preset', detail: 'preset has no connectionId and several connections exist' },
-    );
-  }
-  const found = connections.find((c) => c.id === preset.connectionId);
-  if (found) return ok(found);
-  return err(
-    'no-token',
-    `Connect the ${workspaceLabel(preset.workspaceName)} workspace in Sitecatch settings, or pick a workspace for this preset.`,
-    { action: 'edit-preset', detail: 'preset connectionId is not connected on this device' },
-  );
-}
+export { resolvePresetConnection } from '@/lib/presets/connection';
