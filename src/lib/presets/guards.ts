@@ -96,15 +96,17 @@ export function isMapping(v: unknown): v is Mapping {
   );
 }
 
-/** Full structural check of a v1 preset. */
+/** Full structural check of a current (v2) preset. */
 export function isPreset(v: unknown): v is Preset {
   if (!isObj(v)) return false;
   const { screenshot, dedupe } = v;
   return (
-    v.schemaVersion === 1 &&
+    v.schemaVersion === 2 &&
     isStr(v.id) &&
     v.id !== '' &&
     isStr(v.name) &&
+    (v.connectionId === null || (isStr(v.connectionId) && v.connectionId !== '')) &&
+    (v.workspaceName === null || isStr(v.workspaceName)) &&
     isStr(v.dataSourceId) &&
     v.dataSourceId !== '' &&
     isStr(v.dataSourceName) &&
@@ -124,9 +126,11 @@ export function isPreset(v: unknown): v is Preset {
 /** Rebuilds a preset with only known keys (drops anything extra an import may carry). */
 export function clonePreset(p: Preset): Preset {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: p.id,
     name: p.name,
+    connectionId: p.connectionId,
+    workspaceName: p.workspaceName,
     dataSourceId: p.dataSourceId,
     dataSourceName: p.dataSourceName,
     mappings: p.mappings.map((m) => ({

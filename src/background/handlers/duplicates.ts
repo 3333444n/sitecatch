@@ -16,7 +16,7 @@ export function createDuplicateHandlers(deps: BackgroundDeps, clients: ClientPro
     const url = typeof request.url === 'string' ? request.url.trim() : '';
     if (propertyId === null || url === '') return ok({ matches: [] });
 
-    const authed = await clients.requireClient();
+    const authed = await clients.requirePresetClient(preset);
     if (!authed.ok) return authed;
     const { client } = authed.data;
 

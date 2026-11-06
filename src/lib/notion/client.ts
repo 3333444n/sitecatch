@@ -43,6 +43,12 @@ import {
 export interface NotionMe {
   botName: string;
   workspaceName: string | null;
+  /**
+   * `bot.workspace_id` — the workspace the token belongs to. Reported for
+   * internal connections and personal access tokens alike (a PAT belongs to
+   * one workspace); absent on older API responses.
+   */
+  workspaceId?: string;
   /** From `bot.workspace_limits` — e.g. 5 MiB on free workspaces. */
   maxFileUploadBytes?: number;
 }
@@ -363,6 +369,8 @@ export function createNotionClient(options: NotionClientOptions): NotionClient {
         botName: str(raw.name) ?? 'Notion integration',
         workspaceName: str(bot.workspace_name) ?? null,
       };
+      const workspaceId = str(bot.workspace_id);
+      if (workspaceId) me.workspaceId = workspaceId;
       const limits = bot.workspace_limits;
       if (isObj(limits) && typeof limits.max_file_upload_size_in_bytes === 'number') {
         me.maxFileUploadBytes = limits.max_file_upload_size_in_bytes;

@@ -25,14 +25,15 @@ describe('sendRequest', () => {
   });
 
   it('returns an AppError when nothing answers', async () => {
-    const res = await sendRequest({ type: 'auth/status' });
+    const res = await sendRequest({ type: 'conn/list' });
     expect(res.ok).toBe(false);
   });
 });
 
 describe('isRequest', () => {
   it('accepts known types only', () => {
-    expect(isRequest({ type: 'auth/status' })).toBe(true);
+    expect(isRequest({ type: 'conn/list' })).toBe(true);
+    expect(isRequest({ type: 'auth/status' })).toBe(false);
     expect(isRequest({ type: 'nope' })).toBe(false);
     expect(isRequest(null)).toBe(false);
   });

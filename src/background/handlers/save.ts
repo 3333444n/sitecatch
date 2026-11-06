@@ -14,7 +14,7 @@ import { getSchema } from '../schema-cache';
 
 export function createPipelineDeps(deps: BackgroundDeps, clients: ClientProvider): SavePipelineDeps {
   return {
-    requireClient: clients.requireClient,
+    requireClient: clients.requirePresetClient,
     loadPreset: getPreset,
     fetchSchema: (client, dataSourceId) =>
       getSchema(client, dataSourceId, { force: true, now: deps.now().getTime() }),

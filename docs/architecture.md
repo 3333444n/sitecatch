@@ -12,7 +12,7 @@ flowchart LR
   end
   subgraph BG["Background (event page / service worker)"]
     R[router.ts]
-    H[handlers/<br/>auth · dataSources · capture<br/>duplicates · save · jobs]
+    H[handlers/<br/>connections · dataSources · capture<br/>duplicates · save · jobs]
     SP[save-pipeline.ts]
   end
   subgraph LIB["src/lib (pure-ish modules)"]
@@ -63,15 +63,24 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 
 | Type | Params | Response data | Notes |
 | --- | --- | --- | --- |
-| `auth/validate` | `{ token, tokenKind }` | `{ botName, workspaceName \| null, maxFileUploadBytes? }` | Trims the token, checks the api.notion.com host permission first (`no-host-permission` / `grant-permission`; the UI must call `permissions.request` in its click handler), then `GET /v1/users/me`. Stores `AuthState` in `local:auth` only on success; a new token clears the schema cache. |
-| `auth/status` | — | `{ hasToken, tokenKind?, hostPermission, workspaceName?, maxFileUploadBytes? }` | Cheap check on popup/options open. **Never returns the token.** |
-| `auth/clear` | — | `null` | Forgets the token and clears the session schema cache. |
-| `ds/list` | `{ query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources. |
-| `ds/schema` | `{ dataSourceId, force? }` | `DataSourceSchema` | Cached in `session:schema:<id>` for 5 minutes unless `force`. |
+| `conn/add` | `{ token, tokenKind }` | `ConnectionSummary` | Trims the token, checks the api.notion.com host permission first (`no-host-permission` / `grant-permission`; the UI must call `permissions.request` in its click handler), then `GET /v1/users/me`. On success stores a `Connection` in `local:connections`: a token for a workspace that is already connected **replaces that connection's token in place** (same id and order), otherwise a new connection is appended. Adding a second workspace first pins presets without a workspace to the existing one. A changed token clears the schema cache. |
+| `conn/list` | — | `{ hostPermission, connections: ConnectionSummary[] }` | Cheap check on popup/options open. Runs the one-time `local:auth` migration first. **Never returns tokens.** |
+| `conn/remove` | `{ connectionId }` | `null` | Forgets one connection's token and clears the session schema cache. Presets bound to it stay (they show as needing a workspace). Also clears the legacy `local:auth` copy when it held that token (or when no connections remain). |
+| `ds/list` | `{ connectionId, query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources, with that connection's token. |
+| `ds/schema` | `{ connectionId, dataSourceId, force? }` | `DataSourceSchema` | Read with that connection's token. Cached in `session:schema:<id>` for 5 minutes unless `force` (data source ids are globally unique, so the key has no connection). |
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
-| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | No dedupe property, or one that the live schema no longer has as `url` / `rich_text` / `title` ("Duplicate check is off") → `{ matches: [] }` without a query. Otherwise queries the dedupe property (by its live type) for `urlVariants(url)` — the normalized URL **or** the raw one. |
-| `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
+| `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | Uses the preset's connection ([workspaces](#workspaces-connections)); unresolved → `no-token` / `edit-preset`. No dedupe property, or one that the live schema no longer has as `url` / `rich_text` / `title` ("Duplicate check is off") → `{ matches: [] }` without a query. Otherwise queries the dedupe property (by its live type) for `urlVariants(url)` — the normalized URL **or** the raw one. |
+| `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | The connection comes from the preset. Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
 | `job/get` | `{ jobId }` | `JobState` | Polled by the popup. `status`: `queued → uploading → creating → done \| error`. `done` carries `pageUrl` and optional `warnings`. |
+
+## Workspaces (connections)
+
+Sitecatch can be connected to several Notion workspaces at once, one token each ([ADR 0010](./decisions/0010-multiple-workspace-connections.md)). They live in `local:connections` (`Connection[]`, device-only). **Each preset owns its workspace** (`Preset.connectionId`); there is no global "active workspace".
+
+- **Connection id.** The Notion workspace id (`bot.workspace_id` from `GET /v1/users/me`, reported for internal connections and personal access tokens alike) when Notion reports one, so a preset synced to another device resolves there once that device connects the same workspace. Otherwise a random UUID. At most one connection per workspace: `conn/add` matches an existing one by workspace id, by identical token, or (for connections migrated from v0.1, whose id is `legacy-<uuid>`) by asking Notion which workspace the legacy token belongs to.
+- **Resolution** (one rule, `src/lib/presets/connection.ts`, used by `dup/check`, the save pipeline, the popup and the editor): `connectionId` connected here → that connection; `connectionId: null` and exactly one connection → the only one; otherwise unresolved → `no-token` with an actionable message ("Connect the “<workspace>” workspace in Sitecatch settings, or pick a workspace for this preset.") and the `edit-preset` action. No connections at all → `no-token` / `open-setup`.
+- **Clients.** `createClientProvider` (`src/background/context.ts`) memoizes one `NotionClient` per connection id + token (each keeps its own rate-limit queue). `requireClient(connectionId)` serves `ds/*`; `requirePresetClient(preset)` serves `dup/check` and the save pipeline. The upload limit comes from the resolved connection's `maxFileUploadBytes`.
+- **Migration from v0.1.** `local:auth` (one token) is copied into `local:connections` the first time connections are read while none exist (also kicked off when the background starts). It is idempotent and does **not** delete `local:auth`, so a downgrade keeps working. Replacing the migrated connection's token keeps `local:auth` in step; removing it clears `local:auth`, so "Remove" really forgets the token.
 
 ## Data flow
 
@@ -86,11 +95,11 @@ sequenceDiagram
   participant N as Notion
 
   User->>P: click toolbar button
-  P->>BG: auth/status
-  alt no token / no host permission
-    BG-->>P: hasToken=false → "Open setup"
+  P->>BG: conn/list
+  alt no connections / no host permission
+    BG-->>P: connections=[] → "Open setup"
   else ready
-    P->>P: pick preset (local:lastPresetId)
+    P->>P: pick preset (local:lastPresetId) → its workspace (resolution rule)
     par capture
       P->>BG: capture/run {tabId}
       BG->>BG: restricted URL? → url/title fallback
@@ -101,7 +110,7 @@ sequenceDiagram
       BG->>BG: run extractors, downscale screenshot
       BG-->>P: CaptureResult
     and schema
-      P->>BG: ds/schema {dataSourceId}
+      P->>BG: ds/schema {connectionId, dataSourceId}
       BG->>N: GET /v1/data_sources/{id} (or session cache)
       BG-->>P: DataSourceSchema → popup validates preset
     and duplicates
@@ -120,7 +129,7 @@ Implemented in `src/background/save-pipeline.ts` (all side effects injected, see
 ```mermaid
 flowchart TD
   A[save/start] --> B[create JobState 'queued'<br/>session:job:id, return jobId<br/>pipeline runs detached]
-  B --> C[clear badge · auth + preset<br/>schema with force=true · validatePreset]
+  B --> C[clear badge · preset → its connection<br/>schema with force=true · validatePreset]
   C -->|blocking issue| E1[error: preset-invalid / edit-preset]
   C --> N[normalizeUrl the value written<br/>to the dedupe property<br/>skipped when dedupe is off]
   N --> F{screenshot needed?<br/>files prop / files mapping /<br/>cover=screenshot / bodyImage}
@@ -141,7 +150,7 @@ flowchart TD
 ```
 
 - The upload happens **once**. Its `file_upload` id is reused for the `files` property (`preset.screenshot.filesPropertyId`, the only screenshot → files path the editor offers; a legacy `files` mapping with the `screenshot` extractor still resolves to the same upload), the cover and the image block.
-- The screenshot size limit is `AuthState.maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning ("Saved without screenshot: …") is recorded. All save warnings (screenshot plus dropped/shortened-property warnings from `buildProperties`) are stored in `JobState.warnings` on the `done` job, and the popup's success view shows them as small notes.
+- The screenshot size limit is the preset's connection's `maxFileUploadBytes` (from `bot.workspace_limits`), defaulting to 5 MiB. A larger screenshot is recompressed to fit; if it still doesn't fit (or Notion answers `upload-too-large`) the page is saved **without** it and a warning ("Saved without screenshot: …") is recorded. All save warnings (screenshot plus dropped/shortened-property warnings from `buildProperties`) are stored in `JobState.warnings` on the `done` job, and the popup's success view shows them as small notes.
 - **Update** replaces the mapped properties and the cover (and icon). It does **not** append another body image.
 - Only the dedupe property's URL is normalized (`normalizeUrl`) — the **normalized URL is what gets written** to it — so a re-save of the same page with `?utm_…` or `#fragment` is detected. Other URL properties keep the captured value. If the dedupe property is missing or no longer `url` / `rich_text` / `title`, validation reports a non-blocking "Duplicate check is off" issue and the pipeline skips normalization and recovery queries.
 - Date-times without a UTC offset (popup date-time inputs) get the local offset appended before sending (`withUtcOffset`), since Notion reads offset-less date-times as UTC.
@@ -172,7 +181,8 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 
 | Area | Key | Type | Contents |
 | --- | --- | --- | --- |
-| `local` | `local:auth` | `AuthState \| null` | Token, `tokenKind` (`personal` / `connection`), bot name, workspace name, `maxFileUploadBytes?`, `validatedAt`. **Never synced.** |
+| `local` | `local:connections` | `Connection[]` | One per connected workspace: `id` (workspace id or UUID), token, `tokenKind` (`personal` / `connection`), bot name, workspace name, `maxFileUploadBytes?`, `validatedAt`. In display order. **Never synced.** |
+| `local` | `local:auth` | `AuthState \| null` | **Deprecated** v0.1 single token. Read only by the one-time migration into `local:connections`; cleared when that connection is removed. **Never synced.** |
 | `local` | `local:settings` | `Settings` | `captureDelayMs` (default 0), `jpegQuality` (default 0.85). |
 | `local` | `local:lastPresetId` | `string \| null` | Preset preselected in the popup. |
 | `local` | `local:history` | `HistoryEntry[]` | Last 20 saves (`HISTORY_LIMIT`), newest first. |
@@ -187,7 +197,7 @@ All items are defined in `src/lib/storage/items.ts` (WXT typed storage).
 ## Cross-browser notes
 
 - **Background context.** WXT builds MV3 for both browsers. Firefox runs the background as a non-persistent **event page** (`background.scripts`). Chrome runs it as a **service worker**. Either can be stopped when idle and restarted on the next event.
-- **No background globals for state.** Anything that has to outlive one event (jobs, schema cache, auth) lives in `storage`. An in-memory value, such as the request queue, may only be something that can be lost safely.
+- **No background globals for state.** Anything that has to outlive one event (jobs, schema cache, connections) lives in `storage`. An in-memory value, such as the request queue, may only be something that can be lost safely.
 - Register listeners synchronously at the top level of `defineBackground` (router, `onInstalled`) so they exist when the browser wakes the background up for an event.
 - **Router sender rules** (`src/background/router.ts`, `isTrustedSender`): one `runtime.onMessage` listener that replies with `sendResponse` + `return true` (WXT's fakeBrowser only delivers replies that way). It ignores anything that isn't `isRequest()`, and anything not sent by our own extension pages: `sender.id` must equal `runtime.id`, and `sender.url` (when present) must be inside the extension origin; a sender with a `tab` but no extension URL (a content script) is ignored. Handler throws become `err(toAppError(…))`.
 - **Service-worker limits (Chrome).** No DOM is available. Screenshot downscaling must use `OffscreenCanvas` / `createImageBitmap`, which work in both browsers' backgrounds.

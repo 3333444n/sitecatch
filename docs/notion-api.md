@@ -15,7 +15,7 @@ Content-Type: application/json        (except the multipart file send)
 ```
 
 - `2026-03-11` is the latest API version. Compared with `2025-09-03`, it makes three changes. Append block children takes a `position` object instead of the `after` parameter. `in_trash` replaces `archived`. The `transcription` block is now called `meeting_notes`. None of these affect Sitecatch's v0 calls, but code must read `in_trash` and never `archived`. ([Upgrade guide](https://developers.notion.com/guides/get-started/upgrade-guide-2026-03-11), [Changes by version](https://developers.notion.com/reference/changes-by-version))
-- Sitecatch accepts two kinds of token (`AuthState.tokenKind`), both sent the same way as a Bearer token:
+- Sitecatch accepts two kinds of token (`Connection.tokenKind`), both sent the same way as a Bearer token:
   - **Personal access token** (`personal`, the default and recommended): acts **as the user** and sees everything the user can open. No per-database sharing is needed. Created in the Developer portal → Personal access tokens; shown only once; has an expiration.
   - **Internal connection API token** (`connection`), starting with `ntn_`: acts as a bot user that sees only the pages and databases explicitly shared with it (••• → Connections), plus their children. Only a **Workspace Owner** can create one. ([Internal connections](https://developers.notion.com/guides/get-started/internal-connections))
 - See [setup-guide.md](./setup-guide.md) for creating either.
@@ -36,7 +36,7 @@ A database with one data source shows up as one entry in the list. A database wi
 
 | Purpose | Request | Message type |
 | --- | --- | --- |
-| Validate token, get bot/workspace name | `GET /v1/users/me` | `auth/validate` |
+| Validate token, get bot/workspace name and id | `GET /v1/users/me` | `conn/add` |
 | List data sources the token can see | `POST /v1/search` with `{"filter": {"property": "object", "value": "data_source"}, "query"?: "…"}` (paginated) | `ds/list` |
 | Read a data source schema | `GET /v1/data_sources/{id}` | `ds/schema` |
 | Find duplicates by URL | `POST /v1/data_sources/{id}/query` with a filter on the dedupe property | `dup/check` |
@@ -49,7 +49,8 @@ References: [Retrieve your token's bot user](https://developers.notion.com/refer
 
 Notes:
 
-- `GET /v1/users/me` works whatever the connection's user-information capability is, so "No user information" is enough. The response includes `bot.workspace_name` and `bot.workspace_limits.max_file_upload_size_in_bytes`. The client reads the upload limit from there; it is returned as `maxFileUploadBytes` by `auth/validate` / `auth/status` and stored in `AuthState.maxFileUploadBytes` (default 5 MiB when absent).
+- `GET /v1/users/me` works whatever the connection's user-information capability is, so "No user information" is enough. The response includes `bot.workspace_name`, `bot.workspace_id` and `bot.workspace_limits.max_file_upload_size_in_bytes`. The client reads the upload limit from there; it is stored in `Connection.maxFileUploadBytes` and returned in `ConnectionSummary` by `conn/add` / `conn/list` (default 5 MiB when absent).
+- `bot.workspace_id` is documented as "ID of the bot's workspace" for every token's bot user ([User object → Bots](https://developers.notion.com/reference/user#bots)). A personal access token also returns a bot user (`bot.owner.type: "user"`, the creator in `bot.owner.user`) and "belongs to one workspace" ([Retrieve your token's bot user](https://developers.notion.com/reference/get-self), [Personal access tokens](https://developers.notion.com/guides/get-started/personal-access-tokens)), so it reports the workspace id too. For user-owned bots `workspace_name` may be `null`. Sitecatch uses `workspace_id` as `Connection.id` (stable across devices, one connection per workspace) and falls back to a random UUID when it's missing. Not yet verified against a live PAT response.
 - Page `properties` can be keyed by property **name or id**. Sitecatch always keys by **id**, so renaming a property doesn't break a preset ([ADR 0006](./decisions/0006-map-properties-by-id.md)).
 - Search returns only objects the token can see. For an internal connection, an empty result almost always means nothing has been shared yet; for a personal access token, it usually means the wrong workspace (see [setup-guide.md](./setup-guide.md#cant-see-your-database)).
 - Duplicate detection filters `POST …/query` on the dedupe property by its type: `{"property": id, "url": {"equals": …}}` for `url` properties (`rich_text` / `title` use the same shape with their own key), OR-ing the normalized and the raw URL. The `url` filter's exact match was verified against a real workspace (manual E2E, 2026-10-18), including a `?utm_source=…` variant.

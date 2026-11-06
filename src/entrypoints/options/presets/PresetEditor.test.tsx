@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { getPreset, listPresets, savePreset } from '@/lib/presets/storage';
-import { makePreset, resourcesSchema } from '@/lib/presets/testing';
+import { favWebsitesSchema, makePreset, resourcesSchema } from '@/lib/presets/testing';
 import type { Preset } from '@/lib/presets/types';
-import { authStatus } from '../lib/auth';
+import { connectionsStatus } from '../lib/connections';
 import { navigate, resetRouterForTests } from '../lib/router';
-import { DS_RESOURCES, mockBackend, schemaHandler } from '../test/mock-backend';
+import { ACME, DS_FAV, DS_RESOURCES, GLOBEX, mockBackend, schemaHandler } from '../test/mock-backend';
 import { PresetEditor } from './PresetEditor';
-import { NewPresetRoute } from './PresetRoutes';
+import { EditPresetRoute, NewPresetRoute } from './PresetRoutes';
 import { PresetsList, presetStatus } from './PresetsList';
 
 vi.mock('@/lib/messaging/client', () => ({ sendRequest: vi.fn() }));
@@ -17,7 +17,7 @@ vi.mock('@/lib/messaging/client', () => ({ sendRequest: vi.fn() }));
 beforeEach(() => {
   fakeBrowser.reset();
   resetRouterForTests();
-  authStatus.value = { hasToken: true, tokenKind: 'personal', hostPermission: true, workspaceName: 'Acme' };
+  connectionsStatus.value = { hostPermission: true, connections: [ACME] };
 });
 
 afterEach(() => {
@@ -45,7 +45,7 @@ function basePreset(overrides: Partial<Preset> = {}): Preset {
 
 describe('preset editor', () => {
   it('filters extractors by property type (fonts for multi_select, not for date)', async () => {
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
 
     await include('Tags');
     const tags = row('Tags');
@@ -61,7 +61,7 @@ describe('preset editor', () => {
   });
 
   it('shows the extractor description and an optional fallback', async () => {
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     await include('Name');
     const name = row('Name');
     expect(within(name).getByLabelText<HTMLSelectElement>('Extractor').value).toBe('ogTitle');
@@ -72,7 +72,7 @@ describe('preset editor', () => {
   });
 
   it('attaches the screenshot via the files property (canonical) and hides the screenshot extractor', async () => {
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     await include('Screenshots');
     const extractor = within(row('Screenshots')).getByLabelText('Extractor');
     expect(optionLabels(extractor)).toEqual(['Favicon', 'Preview image']);
@@ -96,7 +96,7 @@ describe('preset editor', () => {
         { propertyId: 'gone', propertyName: 'Old prop', propertyType: 'rich_text', source: { kind: 'ask' }, editableInPopup: true },
       ],
     });
-    render(<PresetEditor preset={preset} schema={resourcesSchema} />);
+    render(<PresetEditor preset={preset} schema={resourcesSchema} connection={ACME} />);
     const banner = screen.getByTestId('validation');
     expect(within(banner).getByText('Fix these before saving')).toBeTruthy();
     expect(within(banner).getByText(/Old prop/)).toBeTruthy();
@@ -113,20 +113,20 @@ describe('preset editor', () => {
         { propertyId: 'notes', propertyName: 'Old notes', propertyType: 'rich_text', source: { kind: 'ask' }, editableInPopup: true },
       ],
     });
-    render(<PresetEditor preset={preset} schema={resourcesSchema} />);
+    render(<PresetEditor preset={preset} schema={resourcesSchema} connection={ACME} />);
     expect(screen.getByText('Good to know')).toBeTruthy();
     expect(screen.queryByText('Fix these before saving')).toBeNull();
   });
 
   it('requires a fixed value for static sources', async () => {
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     await include('Kind');
     await userEvent.click(within(row('Kind')).getByRole('radio', { name: 'Fixed value' }));
     expect(screen.getByText(/Set a fixed value for “Kind”/, { selector: '.sco-issue-list li' })).toBeTruthy();
   });
 
   it('lists read-only properties muted', () => {
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     expect(screen.getByText('Can’t be filled by Sitecatch')).toBeTruthy();
     expect(screen.getByText('Related')).toBeTruthy();
     expect(screen.getByText('Relations aren’t supported yet')).toBeTruthy();
@@ -136,7 +136,7 @@ describe('preset editor', () => {
     const confirm = vi.fn(() => false);
     vi.stubGlobal('confirm', confirm);
     navigate('/presets/p1');
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     await userEvent.type(screen.getByRole('textbox', { name: /^Name/ }), ' edited');
     navigate('/settings');
     expect(confirm).toHaveBeenCalled();
@@ -150,7 +150,7 @@ describe('new preset', () => {
     render(<NewPresetRoute />);
     await userEvent.click(await screen.findByRole('button', { name: /Resources/ }));
     expect(await screen.findByRole('heading', { level: 1, name: 'New preset' })).toBeTruthy();
-    expect(send).toHaveBeenCalledWith({ type: 'ds/schema', dataSourceId: 'ds-resources' });
+    expect(send).toHaveBeenCalledWith({ type: 'ds/schema', connectionId: 'ws-acme', dataSourceId: 'ds-resources' });
     // createEmptyPreset defaults: title + first url mapped, url used for dedupe.
     expect(within(row('Name')).getByRole('switch', { name: 'Include Name' })).toHaveProperty('checked', true);
     expect(within(row('URL')).getByRole('switch', { name: 'Include URL' })).toHaveProperty('checked', true);
@@ -160,6 +160,87 @@ describe('new preset', () => {
     await waitFor(async () => {
       expect((await listPresets()).map((p) => p.name)).toEqual(['Resources']);
     });
+  });
+});
+
+describe('multiple workspaces', () => {
+  beforeEach(() => {
+    connectionsStatus.value = { hostPermission: true, connections: [ACME, GLOBEX] };
+  });
+
+  it('new preset: picks the workspace first, then lists its databases, and binds the preset to it', async () => {
+    const send = mockBackend({
+      'ds/list': (req) => ({ ok: true, data: req.connectionId === 'ws-globex' ? [DS_FAV] : [DS_RESOURCES] }),
+      'ds/schema': schemaHandler([resourcesSchema, favWebsitesSchema]),
+    });
+    render(<NewPresetRoute />);
+    expect(screen.getByText(/Pick the workspace this preset saves into/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /Globex/ }));
+    expect(send).toHaveBeenCalledWith({ type: 'ds/list', connectionId: 'ws-globex' });
+    await userEvent.click(await screen.findByRole('button', { name: /Fav websites/ }));
+    expect(send).toHaveBeenCalledWith({ type: 'ds/schema', connectionId: 'ws-globex', dataSourceId: 'ds-fav' });
+    await userEvent.click(await screen.findByRole('button', { name: 'Save preset' }));
+    await waitFor(async () => {
+      expect((await listPresets()).map((p) => [p.connectionId, p.workspaceName])).toEqual([['ws-globex', 'Globex']]);
+    });
+  });
+
+  it('editor shows the workspace and can move the preset to another workspace’s database', async () => {
+    const send = mockBackend({
+      'ds/list': () => ({ ok: true, data: [DS_FAV] }),
+      'ds/schema': schemaHandler([resourcesSchema, favWebsitesSchema]),
+    });
+    render(
+      <PresetEditor
+        preset={basePreset({ connectionId: 'ws-acme', workspaceName: 'Acme' })}
+        schema={resourcesSchema}
+        connection={ACME}
+      />,
+    );
+    expect(screen.getByText('Acme', { selector: '.sco-db-row__name' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Change workspace' }));
+    await userEvent.click(screen.getByRole('button', { name: /Globex/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Fav websites/ }));
+    expect(send).toHaveBeenCalledWith({ type: 'ds/schema', connectionId: 'ws-globex', dataSourceId: 'ds-fav', force: true });
+    expect(await screen.findByText('Globex', { selector: '.sco-db-row__name' })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Save preset' }));
+    await waitFor(async () => {
+      expect(await getPreset('p1')).toMatchObject({ ok: true, data: { connectionId: 'ws-globex', dataSourceId: 'ds-fav' } });
+    });
+  });
+
+  it('an unresolved preset asks for a workspace, then re-validates the schema with it', async () => {
+    const send = mockBackend({
+      'ds/schema': (req) =>
+        req.connectionId === 'ws-globex'
+          ? { ok: true, data: resourcesSchema }
+          : { ok: false, error: { code: 'db-not-shared', message: 'not here', action: 'reshare-db' } },
+    });
+    await savePreset(basePreset({ connectionId: 'ws-gone', workspaceName: 'Old Co', dataSourceName: 'Resources' }));
+    render(<EditPresetRoute id="p1" />);
+    expect(await screen.findByText('Pick a workspace for this preset')).toBeTruthy();
+    expect(screen.getByText(/belongs to the “Old Co” workspace, which isn’t connected/)).toBeTruthy();
+    // No schema request until a workspace is picked.
+    expect(send).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'ds/schema' }));
+
+    await userEvent.click(screen.getByRole('button', { name: /Acme/ }));
+    expect(await screen.findByText(/isn’t visible in “Acme”/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: /Globex/ }));
+    expect(await screen.findByRole('heading', { level: 1, name: 'Resources' })).toBeTruthy();
+    expect(await getPreset('p1')).toMatchObject({ ok: true, data: { connectionId: 'ws-globex', workspaceName: 'Globex' } });
+  });
+
+  it('presets list flags unresolved presets and shows workspaces', async () => {
+    mockBackend({ 'ds/schema': schemaHandler([resourcesSchema]) });
+    await savePreset(basePreset({ id: 'a', name: 'Alpha', connectionId: 'ws-acme', workspaceName: 'Acme' }));
+    await savePreset(basePreset({ id: 'b', name: 'Beta' }));
+    await savePreset(basePreset({ id: 'c', name: 'Gamma', connectionId: 'ws-gone', workspaceName: 'Old Co' }));
+    render(<PresetsList />);
+    expect(await screen.findByText('Ready')).toBeTruthy();
+    expect(screen.getByText('Pick a workspace')).toBeTruthy();
+    expect(screen.getByText('Workspace not connected')).toBeTruthy();
+    expect(screen.getByText(/Acme · Resources/)).toBeTruthy();
+    expect(screen.getByText(/Old Co · Resources/)).toBeTruthy();
   });
 });
 

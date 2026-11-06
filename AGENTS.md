@@ -49,7 +49,7 @@ These define the shared interfaces between modules. **Change only via the orches
 
 - TypeScript `strict`; **no `any`** (use `unknown` + narrowing). Prefer pure functions; keep side effects at the edges.
 - Use the `Result` envelope across every message boundary and for fallible library functions; background handlers never throw.
-- **Never log, display, or persist the token** anywhere except `local:auth`. It is sent only to `api.notion.com`.
+- **Never log, display, or persist tokens** anywhere except `local:connections` (and the legacy `local:auth` copy, handled only by the v0.1 migration). They are sent only to `api.notion.com`.
 - **All Notion API calls happen in the background** (never from popup/options/content scripts).
 - User-facing errors must be **actionable**: say what happened and what to do next (and set `action` when a UI affordance exists).
 - UI: Preact + `@preact/signals`, plain CSS using the tokens from `src/ui/theme.css`. Import shared code with the `@/` alias (`src/`).

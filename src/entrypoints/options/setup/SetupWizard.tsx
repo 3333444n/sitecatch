@@ -1,12 +1,14 @@
 /**
- * Guided setup (#/setup): choose auth method → create token → grant
+ * Workspaces & guided setup (#/setup). With connections: the list of
+ * workspaces (databases, replace token, remove, add). The wizard (first run,
+ * "Add workspace", "Replace token"): choose auth method → create token → grant
  * api.notion.com access → paste & validate → (connection only) share
  * databases → list visible databases.
  */
 import { useEffect, useState } from 'preact/hooks';
 import type { AppError, AppErrorAction } from '@/lib/errors';
 import { sendRequest } from '@/lib/messaging/client';
-import type { Response } from '@/lib/messaging/protocol';
+import type { ConnectionSummary } from '@/lib/messaging/protocol';
 import type { TokenKind } from '@/lib/storage/items';
 import {
   Badge,
@@ -20,7 +22,13 @@ import {
   Field,
   type StepItem,
 } from '@/ui/components';
-import { authStatus, disconnect, refreshAuth, TOKEN_KIND_LABEL } from '../lib/auth';
+import {
+  connectionsStatus,
+  refreshConnections,
+  removeConnection,
+  TOKEN_KIND_LABEL,
+  workspaceName,
+} from '../lib/connections';
 import { setupShot } from '../lib/constants';
 import { hasNotionAccess, requestNotionAccess } from '../lib/permissions';
 import { navigate } from '../lib/router';
@@ -44,13 +52,184 @@ export function stepsFor(kind: TokenKind): StepId[] {
     : ['method', 'create', 'access', 'token', 'share', 'databases'];
 }
 
-type Validated = Response<'auth/validate'>;
+type Validated = ConnectionSummary;
 
+/**
+ * #/setup: the workspaces overview once something is connected, otherwise
+ * the guided wizard. "Add workspace" and "Replace token" reuse the wizard.
+ */
 export function SetupWizard() {
-  const status = authStatus.value;
-  const connected = status?.hasToken === true;
-  const [kind, setKind] = useState<TokenKind>(status?.tokenKind ?? 'personal');
-  const [step, setStep] = useState<StepId>(connected ? 'databases' : 'method');
+  const list = connectionsStatus.value?.connections ?? [];
+  const [flow, setFlow] = useState<{ replacing: ConnectionSummary | null } | null>(
+    list.length > 0 ? null : { replacing: null },
+  );
+
+  if (flow === null) {
+    return (
+      <WorkspacesOverview
+        onAdd={() => {
+          setFlow({ replacing: null });
+        }}
+        onReplace={(c) => {
+          setFlow({ replacing: c });
+        }}
+      />
+    );
+  }
+  return (
+    <ConnectWizard
+      key={flow.replacing?.id ?? 'new'}
+      replacing={flow.replacing}
+      onDone={
+        list.length > 0
+          ? () => {
+              setFlow(null);
+            }
+          : undefined
+      }
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function WorkspacesOverview({
+  onAdd,
+  onReplace,
+}: {
+  onAdd: () => void;
+  onReplace: (c: ConnectionSummary) => void;
+}) {
+  const status = connectionsStatus.value;
+  const list = status?.connections ?? [];
+  const [open, setOpen] = useState<string | null>(list.length === 1 ? (list[0]?.id ?? null) : null);
+  const [error, setError] = useState<AppError | null>(null);
+
+  async function onRemove(c: ConnectionSummary) {
+    const ok = window.confirm(
+      `Remove “${workspaceName(c)}”? Sitecatch forgets its token. Presets for this workspace stay, but can’t save until you connect it again or pick another workspace for them.`,
+    );
+    if (!ok) return;
+    setError(await removeConnection(c.id));
+  }
+
+  return (
+    <div class="sco-page sco-setup">
+      <header class="sco-page__header sco-page__header--row">
+        <div>
+          <h1>Workspaces</h1>
+          <p class="sco-muted">
+            Each Notion workspace needs its own token. Every preset saves into a database in one of these workspaces.
+          </p>
+        </div>
+        <Button variant="primary" icon="plus" onClick={onAdd}>
+          Add workspace
+        </Button>
+      </header>
+
+      {status && !status.hostPermission && (
+        <Banner
+          tone="warning"
+          title="Sitecatch can’t reach api.notion.com"
+          actions={
+            <GrantAccessButton
+              onGranted={() => void refreshConnections()}
+              onDenied={() => void refreshConnections()}
+            />
+          }
+        >
+          Grant access so Sitecatch can talk to Notion.
+        </Banner>
+      )}
+      {error && (
+        <ErrorBanner
+          error={error}
+          onDismiss={() => {
+            setError(null);
+          }}
+        />
+      )}
+
+      <ul class="sco-workspaces" aria-label="Connected workspaces">
+        {list.map((c) => (
+          <li key={c.id}>
+            <Card
+              compact
+              class="sco-connected"
+              headingLevel={2}
+              title={workspaceName(c)}
+              description={
+                <>
+                  {TOKEN_KIND_LABEL[c.tokenKind]} · as {c.botName}
+                </>
+              }
+              actions={
+                <>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-expanded={open === c.id ? 'true' : 'false'}
+                    onClick={() => {
+                      setOpen(open === c.id ? null : c.id);
+                    }}
+                  >
+                    {open === c.id ? 'Hide databases' : 'Databases'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`Replace token for ${workspaceName(c)}`}
+                    onClick={() => {
+                      onReplace(c);
+                    }}
+                  >
+                    Replace token
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    aria-label={`Remove ${workspaceName(c)}`}
+                    onClick={() => void onRemove(c)}
+                  >
+                    Remove
+                  </Button>
+                </>
+              }
+            >
+              {open === c.id ? (
+                <DatabaseList
+                  connectionId={c.id}
+                  tokenKind={c.tokenKind}
+                  onErrorAction={(action) => {
+                    if (action === 'open-setup' || action === 'reshare-db') onReplace(c);
+                  }}
+                />
+              ) : undefined}
+            </Card>
+          </li>
+        ))}
+      </ul>
+
+      <div class="sco-cta">
+        <Button
+          variant="secondary"
+          icon="plus"
+          onClick={() => {
+            navigate('/presets/new');
+          }}
+        >
+          New preset
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+
+function ConnectWizard({ replacing, onDone }: { replacing: ConnectionSummary | null; onDone?: () => void }) {
+  const [kind, setKind] = useState<TokenKind>(replacing?.tokenKind ?? 'personal');
+  const [step, setStep] = useState<StepId>(replacing ? 'token' : 'method');
   const [granted, setGranted] = useState<boolean | null>(null);
   const [validated, setValidated] = useState<Validated | null>(null);
 
@@ -60,6 +239,8 @@ export function SetupWizard() {
 
   const steps = stepsFor(kind);
   const index = Math.max(0, steps.indexOf(step));
+  const firstRun = onDone === undefined;
+  const target = validated ?? replacing;
 
   function go(id: StepId) {
     setStep(id);
@@ -86,42 +267,28 @@ export function SetupWizard() {
 
   const stepItems: StepItem[] = steps.map((id) => ({ id, title: STEP_TITLES[id] }));
 
-  async function onDisconnect() {
-    if (!window.confirm('Disconnect Sitecatch from Notion? Your presets stay; you’ll need to paste a token again to save.')) return;
-    await disconnect();
-    setValidated(null);
-    go('method');
-  }
+  const title = replacing
+    ? `Replace the token for “${workspaceName(replacing)}”`
+    : firstRun
+      ? 'Set up Sitecatch'
+      : 'Add a workspace';
+  const intro = replacing
+    ? 'Paste a new token for this workspace. Its presets keep working with the new token.'
+    : firstRun
+      ? 'About five minutes. You’ll create a Notion token, paste it here and pick your databases.'
+      : 'Each Notion workspace needs its own token. Create one in the workspace you want to add, then paste it here.';
 
   return (
     <div class="sco-page sco-setup">
       <header class="sco-page__header">
-        <h1>Set up Sitecatch</h1>
-        <p class="sco-muted">About five minutes. You’ll create a Notion token, paste it here and pick your databases.</p>
+        {onDone && (
+          <button type="button" class="sco-back sco-linkbutton" onClick={onDone}>
+            ← Workspaces
+          </button>
+        )}
+        <h1>{title}</h1>
+        <p class="sco-muted">{intro}</p>
       </header>
-
-      {status?.hasToken === true && (
-        <Card
-          compact
-          class="sco-connected"
-          title="Connected to Notion"
-          description={
-            <>
-              {status.workspaceName ?? 'Your workspace'} · {TOKEN_KIND_LABEL[status.tokenKind ?? 'personal']}
-            </>
-          }
-          actions={
-            <>
-              <Button size="sm" variant="ghost" onClick={() => { go('token'); }}>
-                Replace token
-              </Button>
-              <Button size="sm" variant="danger" onClick={() => void onDisconnect()}>
-                Disconnect
-              </Button>
-            </>
-          }
-        />
-      )}
 
       <div class="sco-setup__layout">
         <nav class="sco-setup__progress" aria-label="Setup steps">
@@ -157,23 +324,30 @@ export function SetupWizard() {
               granted={granted}
               onGranted={setGranted}
               validated={validated}
+              replacing={replacing}
               onValidated={(v) => {
                 setValidated(v);
-                void refreshAuth();
+                void refreshConnections();
               }}
             />
           )}
           {step === 'share' && <ShareDatabasesInstructions />}
-          {step === 'databases' && (
-            <DatabasesStep
-              kind={kind}
-              onErrorAction={(action) => {
-                if (action === 'open-setup') go('token');
-                else if (action === 'reshare-db') go(kind === 'connection' ? 'share' : 'token');
-                else if (action === 'grant-permission') go('access');
-              }}
-            />
-          )}
+          {step === 'databases' &&
+            (target ? (
+              <DatabasesStep
+                kind={kind}
+                connection={target}
+                onErrorAction={(action) => {
+                  if (action === 'open-setup') go('token');
+                  else if (action === 'reshare-db') go(kind === 'connection' ? 'share' : 'token');
+                  else if (action === 'grant-permission') go('access');
+                }}
+              />
+            ) : (
+              <Banner tone="info" title="Paste your token first" live={false}>
+                Go back to “{STEP_TITLES.token}” and check your token to see its databases.
+              </Banner>
+            ))}
 
           <div class="sco-step-nav">
             {index > 0 && (
@@ -185,9 +359,14 @@ export function SetupWizard() {
               <Button
                 variant="primary"
                 onClick={next}
-                disabled={step === 'token' && validated === null && !connected}
+                disabled={step === 'token' && validated === null && replacing === null}
               >
                 {step === 'method' ? `Continue with ${kind === 'personal' ? 'a personal access token' : 'an internal connection'}` : 'Continue'}
+              </Button>
+            )}
+            {step === 'databases' && onDone && (
+              <Button variant="ghost" onClick={onDone}>
+                Done
               </Button>
             )}
           </div>
@@ -330,6 +509,8 @@ interface TokenStepProps {
   granted: boolean | null;
   onGranted: (g: boolean) => void;
   validated: Validated | null;
+  /** The workspace whose token is being replaced, if any. */
+  replacing?: ConnectionSummary | null;
   onValidated: (v: Validated) => void;
 }
 
@@ -340,7 +521,7 @@ const INVALID_TOKEN_HINT: Record<TokenKind, string> = {
     'Copy the API token again from the connection’s Configuration tab (Show → Copy). If it was refreshed or the connection deleted, use the current token.',
 };
 
-export function TokenStep({ kind, granted, onGranted, validated, onValidated }: TokenStepProps) {
+export function TokenStep({ kind, granted, onGranted, validated, replacing = null, onValidated }: TokenStepProps) {
   const [token, setToken] = useState('');
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -354,7 +535,7 @@ export function TokenStep({ kind, granted, onGranted, validated, onValidated }: 
     }
     setBusy(true);
     setError(null);
-    const res = await sendRequest({ type: 'auth/validate', token: t, tokenKind: kind });
+    const res = await sendRequest({ type: 'conn/add', token: t, tokenKind: kind });
     setBusy(false);
     if (res.ok) {
       setToken('');
@@ -465,6 +646,12 @@ export function TokenStep({ kind, granted, onGranted, validated, onValidated }: 
           <strong>{validated.botName}</strong>.
         </Banner>
       )}
+      {validated && !error && replacing && validated.id !== replacing.id && (
+        <Banner tone="warning" title="That token is for another workspace">
+          It was added as a new workspace. “{workspaceName(replacing)}” still uses its old token. To replace it, paste a
+          token created in that workspace.
+        </Banner>
+      )}
 
       <ScreenshotSlot
         src={setupShot(8)}
@@ -477,7 +664,15 @@ export function TokenStep({ kind, granted, onGranted, validated, onValidated }: 
 
 // ---------------------------------------------------------------------------
 
-function DatabasesStep({ kind, onErrorAction }: { kind: TokenKind; onErrorAction: (a: AppErrorAction) => void }) {
+function DatabasesStep({
+  kind,
+  connection,
+  onErrorAction,
+}: {
+  kind: TokenKind;
+  connection: ConnectionSummary;
+  onErrorAction: (a: AppErrorAction) => void;
+}) {
   return (
     <div class="sco-instructions">
       <p>
@@ -485,7 +680,7 @@ function DatabasesStep({ kind, onErrorAction }: { kind: TokenKind; onErrorAction
           ? 'These are the databases your token can see. Anything you can open in Notion should be here.'
           : 'These are the databases shared with your Sitecatch connection. Shared one just now? Click Refresh.'}
       </p>
-      <DatabaseList tokenKind={kind} onErrorAction={onErrorAction} />
+      <DatabaseList connectionId={connection.id} tokenKind={kind} onErrorAction={onErrorAction} />
       <ScreenshotSlot
         src={setupShot(11)}
         alt="Sitecatch setup: the list of databases Sitecatch can see"
@@ -499,7 +694,7 @@ function DatabasesStep({ kind, onErrorAction }: { kind: TokenKind; onErrorAction
             navigate('/presets/new');
           }}
         >
-          Create your first preset
+          {connectionsStatus.value && connectionsStatus.value.connections.length > 1 ? 'Create a preset' : 'Create your first preset'}
         </Button>
       </div>
     </div>

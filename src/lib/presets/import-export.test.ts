@@ -38,6 +38,18 @@ describe('export/import', () => {
     expect(res.ok && res.data.every((p) => p.id !== 'a' && p.id !== 'b')).toBe(true);
   });
 
+  it('keeps connectionId on import (unresolved here if not connected)', () => {
+    const p = makePreset({ id: 'c', connectionId: 'ws-elsewhere', workspaceName: 'Elsewhere' });
+    const res = parseImport(exportPresets([p]), { regenerateIds: 'never' });
+    expect(res).toEqual({ ok: true, data: [p] });
+  });
+
+  it('imports v1 presets from an older export', () => {
+    const { connectionId: _c, workspaceName: _w, ...rest } = makePreset({ id: 'b', name: 'B', cover: 'ogImage', icon: 'favicon' });
+    const res = parseImport(wrap([{ ...rest, schemaVersion: 1 }]), { regenerateIds: 'never' });
+    expect(res).toEqual({ ok: true, data: [presets[1]] });
+  });
+
   it('drops unknown extra keys', () => {
     const res = parseImport(wrap([{ ...presets[1], evil: '<script>' }]));
     expect(res.ok && 'evil' in (res.data[0] ?? {})).toBe(false);
@@ -55,7 +67,10 @@ describe('export/import', () => {
     ['bad property type', wrap([makePreset({ mappings: [{ ...allResourcesMappings()[0], propertyType: 'formula' }] as never })])],
     ['bad static value', wrap([makePreset({ mappings: [{ ...allResourcesMappings()[0], source: { kind: 'static', value: { kind: 'number', value: 'x' } } }] as never })])],
     ['bad file ref', wrap([makePreset({ mappings: [{ ...allResourcesMappings()[0], source: { kind: 'static', value: { kind: 'files', value: [{ kind: 'external' }] } } }] as never })])],
-    ['newer schemaVersion', wrap([{ ...presets[1], schemaVersion: 2 }])],
+    ['newer schemaVersion', wrap([{ ...presets[1], schemaVersion: 3 }])],
+    ['bad connectionId', wrap([{ ...presets[1], connectionId: 42 }])],
+    ['empty connectionId', wrap([{ ...presets[1], connectionId: '' }])],
+    ['bad workspaceName', wrap([{ ...presets[1], workspaceName: 7 }])],
     ['null preset', wrap([null])],
   ];
   it.each(bad)('rejects %s', (_name, json) => {
@@ -69,8 +84,28 @@ describe('export/import', () => {
 });
 
 describe('migratePreset', () => {
-  it('is identity for v1', () => {
+  it('is identity for v2', () => {
     expect(migratePreset(presets[0])).toEqual({ ok: true, data: presets[0] });
+  });
+
+  it('upgrades v1 to v2 as unassigned (connectionId/workspaceName null)', () => {
+    const { connectionId: _c, workspaceName: _w, ...rest } = makePreset({ id: 'old' });
+    const v1 = { ...rest, schemaVersion: 1 };
+    const res = migratePreset(v1);
+    expect(res).toEqual({
+      ok: true,
+      data: makePreset({ id: 'old', connectionId: null, workspaceName: null }),
+    });
+  });
+
+  it('upgrades a v1 preset even if it carries stray v2 keys', () => {
+    const res = migratePreset({ ...makePreset(), schemaVersion: 1, connectionId: 'ws-1' });
+    expect(res.ok && res.data.connectionId).toBe(null);
+  });
+
+  it('keeps an assigned connection', () => {
+    const p = makePreset({ connectionId: 'ws-1', workspaceName: 'Acme' });
+    expect(migratePreset(p)).toEqual({ ok: true, data: p });
   });
 
   it('rejects newer versions with an update hint', () => {

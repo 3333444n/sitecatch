@@ -75,7 +75,7 @@ export function ImportExport() {
     <Card
       title="Import and export presets"
       headingLevel={2}
-      description="Back up your presets or move them to another browser. Files contain presets only: never your token, settings or history."
+      description="Back up your presets or move them to another browser. Files contain presets only: never your tokens, settings or history."
     >
       <div class="sc-stack">
         <div class="sc-row sco-wrap">
@@ -143,8 +143,8 @@ export function ImportExport() {
               </fieldset>
             )}
             <p class="sco-muted">
-              Presets pointing to databases your token can’t see import fine and show “Needs fix” until you change the
-              database.
+              Presets keep their workspace. Presets for a workspace that isn’t connected here import fine and ask you to
+              connect it (or pick another workspace) before they can save.
             </p>
             <div class="sc-row">
               <Button variant="primary" loading={busy} loadingLabel="Importing…" onClick={() => void onConfirm()}>

@@ -8,9 +8,9 @@ import { dispatch, isTrustedSender, registerRouter } from './router';
 function stubHandlers(overrides: Partial<Handlers> = {}): Handlers {
   const notCalled = vi.fn(() => Promise.reject(new Error('unexpected handler call')));
   return {
-    'auth/validate': notCalled,
-    'auth/status': vi.fn(() => Promise.resolve(ok({ hasToken: true, hostPermission: true }))),
-    'auth/clear': notCalled,
+    'conn/add': notCalled,
+    'conn/list': vi.fn(() => Promise.resolve(ok({ hostPermission: true, connections: [] }))),
+    'conn/remove': notCalled,
     'ds/list': notCalled,
     'ds/schema': notCalled,
     'capture/run': notCalled,
@@ -52,10 +52,10 @@ describe('router', () => {
   it('dispatches a request to its handler and replies with the Result', async () => {
     const handlers = stubHandlers();
     registerRouter(handlers);
-    const { handled, reply } = await send({ type: 'auth/status' });
+    const { handled, reply } = await send({ type: 'conn/list' });
     expect(handled).toBe(true);
-    expect(reply).toEqual({ ok: true, data: { hasToken: true, hostPermission: true } });
-    expect(handlers['auth/status']).toHaveBeenCalledWith({ type: 'auth/status' }, popupSender());
+    expect(reply).toEqual({ ok: true, data: { hostPermission: true, connections: [] } });
+    expect(handlers['conn/list']).toHaveBeenCalledWith({ type: 'conn/list' }, popupSender());
   });
 
   it('ignores messages that are not requests', async () => {
@@ -64,21 +64,21 @@ describe('router', () => {
     expect((await send({ type: 'nope' })).handled).toBe(false);
     expect((await send('hello')).handled).toBe(false);
     expect((await send(null)).handled).toBe(false);
-    expect(handlers['auth/status']).not.toHaveBeenCalled();
+    expect(handlers['conn/list']).not.toHaveBeenCalled();
   });
 
   it('rejects senders from other extensions and content scripts', async () => {
     const handlers = stubHandlers();
     registerRouter(handlers);
-    expect((await send({ type: 'auth/status' }, { id: 'someone-else' })).handled).toBe(false);
+    expect((await send({ type: 'conn/list' }, { id: 'someone-else' })).handled).toBe(false);
     const contentScript: MessageSender = {
       id: browser.runtime.id,
       url: 'https://evil.example/page',
       tab: TAB,
     };
-    expect((await send({ type: 'auth/status' }, contentScript)).handled).toBe(false);
-    expect((await send({ type: 'auth/status' }, { id: browser.runtime.id, tab: contentScript.tab })).handled).toBe(false);
-    expect(handlers['auth/status']).not.toHaveBeenCalled();
+    expect((await send({ type: 'conn/list' }, contentScript)).handled).toBe(false);
+    expect((await send({ type: 'conn/list' }, { id: browser.runtime.id, tab: contentScript.tab })).handled).toBe(false);
+    expect(handlers['conn/list']).not.toHaveBeenCalled();
   });
 
   it('accepts the options page opened in a tab', () => {
@@ -95,21 +95,21 @@ describe('router', () => {
   it('turns a throwing handler into an err Result', async () => {
     registerRouter(
       stubHandlers({
-        'auth/status': () => Promise.reject(new Error('boom')),
+        'conn/list': () => Promise.reject(new Error('boom')),
       }),
     );
-    const { reply } = await send({ type: 'auth/status' });
+    const { reply } = await send({ type: 'conn/list' });
     expect(reply).toMatchObject({ ok: false, error: { code: 'unknown', action: 'retry', detail: 'boom' } });
   });
 
   it('dispatch() also catches synchronous throws', async () => {
     const res = await dispatch(
       stubHandlers({
-        'auth/status': () => {
+        'conn/list': () => {
           throw new Error('sync');
         },
       }),
-      { type: 'auth/status' },
+      { type: 'conn/list' },
       popupSender(),
     );
     expect(res).toMatchObject({ ok: false, error: { code: 'unknown', detail: 'sync' } });
@@ -118,6 +118,6 @@ describe('router', () => {
   it('unregisters', async () => {
     const off = registerRouter(stubHandlers());
     off();
-    expect((await send({ type: 'auth/status' })).handled).toBe(false);
+    expect((await send({ type: 'conn/list' })).handled).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 /**
- * Data sources visible to the token (`ds/list`), with search and refresh.
+ * Data sources visible to one workspace connection's token (`ds/list`), with search and refresh.
  * Used by the setup wizard (read-only list) and the "new preset" picker
  * (`onPick`). The empty state explains why a database may be missing.
  */
@@ -12,6 +12,8 @@ import { Button, EmptyState, ErrorBanner, ExternalLink, Icon, Skeleton, TextInpu
 import { CantSeeDatabase } from './CantSeeDatabase';
 
 export interface DatabaseListProps {
+  /** The workspace whose data sources are listed. */
+  connectionId: string;
   tokenKind: TokenKind;
   /** When set, each row is a button that picks the data source. */
   onPick?: (ds: DataSourceSummary) => void;
@@ -25,6 +27,7 @@ export interface DatabaseListProps {
 }
 
 export function DatabaseList({
+  connectionId,
   tokenKind,
   onPick,
   busyId = null,
@@ -43,7 +46,7 @@ export function DatabaseList({
   async function load(q: string) {
     const mine = ++seq.current;
     setLoading(true);
-    const res = await sendRequest({ type: 'ds/list', ...(q.trim() ? { query: q.trim() } : {}) });
+    const res = await sendRequest({ type: 'ds/list', connectionId, ...(q.trim() ? { query: q.trim() } : {}) });
     if (mine !== seq.current) return;
     setLoading(false);
     if (res.ok) {
@@ -68,7 +71,7 @@ export function DatabaseList({
     return () => {
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, connectionId]);
 
   return (
     <div class="sco-dblist">

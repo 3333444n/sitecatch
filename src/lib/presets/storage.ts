@@ -127,10 +127,13 @@ export function watchPresets(cb: (presets: Preset[]) => void): () => void {
 /**
  * New preset with sensible defaults: title ← og:title (fallback page title),
  * first url property ← page URL and used for duplicate detection.
+ * Bound to `connection` (the workspace the data source was picked from).
  */
 export function createEmptyPreset(
   ds: DataSourceSummary,
   schema: DataSourceSchema,
+  /** The workspace the data source was picked from (`null` = unassigned). */
+  connection: { id: string; workspaceName: string | null } | null = null,
   now: Date = new Date(),
 ): Preset {
   const mappings: Mapping[] = [];
@@ -155,9 +158,11 @@ export function createEmptyPreset(
     });
   }
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: crypto.randomUUID(),
     name: ds.name,
+    connectionId: connection?.id ?? null,
+    workspaceName: connection?.workspaceName ?? null,
     dataSourceId: ds.id,
     dataSourceName: ds.name,
     mappings,

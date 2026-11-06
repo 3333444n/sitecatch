@@ -9,7 +9,7 @@ interface Cause {
 const PAT_CAUSES: Cause[] = [
   {
     title: 'Wrong workspace',
-    fix: 'A personal access token belongs to one workspace. Check the workspace shown above. If your database is elsewhere, create a token in that workspace (pick it in the workspace picker) and paste it here.',
+    fix: 'A personal access token belongs to one workspace, so this list shows only that workspace. If your database is in another workspace, add that workspace: Workspaces → Add workspace, with a token created there (switch workspaces in Notion’s picker first).',
   },
   {
     title: 'You don’t have access to it',
@@ -44,7 +44,7 @@ const CONNECTION_CAUSES: Cause[] = [
   },
   {
     title: 'Wrong workspace',
-    fix: 'A connection belongs to the workspace it was created in. Create the connection in the workspace that holds your database and paste its token.',
+    fix: 'A connection belongs to the workspace it was created in, so this list shows only that workspace. If your database is in another workspace, create a connection there and add it: Workspaces → Add workspace.',
   },
   {
     title: 'Token revoked or refreshed',

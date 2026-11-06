@@ -1,9 +1,10 @@
-/** Settings (#/settings): capture, account, import/export, sync note, recent saves. */
+/** Settings (#/settings): capture, workspaces summary, import/export, sync note, recent saves. */
+import { Fragment } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import { getSettings, setSettings } from '@/lib/storage/settings';
 import { historyItem, type HistoryEntry, type Settings } from '@/lib/storage/items';
 import { Banner, Button, Card, ExternalLink } from '@/ui/components';
-import { authStatus, disconnect, TOKEN_KIND_LABEL } from '../lib/auth';
+import { connectionsStatus, TOKEN_KIND_LABEL, workspaceName } from '../lib/connections';
 import { navigate } from '../lib/router';
 import { ImportExport } from './ImportExport';
 
@@ -21,7 +22,8 @@ export function SettingsPage() {
     void setSettings(patch).then(setLocal);
   }
 
-  const status = authStatus.value;
+  const status = connectionsStatus.value;
+  const list = status?.connections ?? [];
 
   return (
     <div class="sco-page">
@@ -63,7 +65,7 @@ export function SettingsPage() {
       </Card>
 
       <Card
-        title="Notion account"
+        title="Notion workspaces"
         headingLevel={2}
         actions={
           <Button
@@ -73,29 +75,25 @@ export function SettingsPage() {
               navigate('/setup');
             }}
           >
-            {status?.hasToken ? 'Re-run setup' : 'Open setup'}
+            {list.length > 0 ? 'Manage workspaces' : 'Open setup'}
           </Button>
         }
       >
-        {status?.hasToken ? (
+        {list.length > 0 ? (
           <div class="sco-account">
             <dl class="sco-dl">
-              <dt>Workspace</dt>
-              <dd>{status.workspaceName ?? 'Unknown'}</dd>
-              <dt>Connected with</dt>
-              <dd>{TOKEN_KIND_LABEL[status.tokenKind ?? 'personal']}</dd>
+              {list.map((c) => (
+                <Fragment key={c.id}>
+                  <dt>{list.length === 1 ? 'Workspace' : workspaceName(c)}</dt>
+                  <dd>
+                    {list.length === 1 ? `${workspaceName(c)} · ` : ''}
+                    {TOKEN_KIND_LABEL[c.tokenKind]} · as {c.botName}
+                  </dd>
+                </Fragment>
+              ))}
               <dt>Access to api.notion.com</dt>
-              <dd>{status.hostPermission ? 'Granted' : 'Not granted: open setup to allow it'}</dd>
+              <dd>{status?.hostPermission ? 'Granted' : 'Not granted: open Workspaces to allow it'}</dd>
             </dl>
-            <Button
-              variant="danger"
-              size="sm"
-              onClick={() => {
-                if (window.confirm('Disconnect Sitecatch from Notion? Your presets stay on this device.')) void disconnect();
-              }}
-            >
-              Disconnect
-            </Button>
           </div>
         ) : (
           <p class="sco-muted">Not connected. Open setup to connect Sitecatch to Notion.</p>
@@ -107,7 +105,7 @@ export function SettingsPage() {
       <Banner tone="info" title="Presets sync with your browser account" live={false}>
         Presets are stored in your browser’s sync storage. In Firefox they follow you when you’re signed in to a Mozilla
         account with add-on sync turned on; in Chrome, when sync is on for your profile. Otherwise they stay on this
-        device. Your token never syncs: it stays on this device only.
+        device. Tokens never sync: they stay on this device only, so on another device you connect each workspace again.
       </Banner>
 
       {history.length > 0 && (

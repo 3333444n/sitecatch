@@ -1,7 +1,7 @@
 /** Options page shell: header nav + hash routes. */
 import { useEffect } from 'preact/hooks';
 import { Spinner } from '@/ui/components';
-import { authStatus, refreshAuth } from './lib/auth';
+import { connectionsStatus, refreshConnections } from './lib/connections';
 import { navigate, useRoute, type Route } from './lib/router';
 import { HelpPage } from './help/HelpPage';
 import { EditPresetRoute, NewPresetRoute } from './presets/PresetRoutes';
@@ -11,7 +11,7 @@ import { SetupWizard } from './setup/SetupWizard';
 import './options.css';
 
 const NAV: { path: string; label: string; match: Route['name'][] }[] = [
-  { path: '/setup', label: 'Setup', match: ['setup'] },
+  { path: '/setup', label: 'Workspaces', match: ['setup'] },
   { path: '/presets', label: 'Presets', match: ['presets', 'preset', 'preset-new'] },
   { path: '/settings', label: 'Settings', match: ['settings'] },
   { path: '/help', label: 'Help', match: ['help'] },
@@ -19,15 +19,17 @@ const NAV: { path: string; label: string; match: Route['name'][] }[] = [
 
 export function App() {
   const route = useRoute();
-  const status = authStatus.value;
+  const status = connectionsStatus.value;
 
   useEffect(() => {
-    void refreshAuth();
+    void refreshConnections();
   }, []);
 
-  // Default route: setup until a token exists, then presets.
+  // Default route: setup until a workspace is connected, then presets.
   useEffect(() => {
-    if (route.name === 'root' && status) navigate(status.hasToken ? '/presets' : '/setup', { replace: true });
+    if (route.name === 'root' && status) {
+      navigate(status.connections.length > 0 ? '/presets' : '/setup', { replace: true });
+    }
   }, [route.name, status]);
 
   return (

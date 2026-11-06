@@ -7,7 +7,7 @@ import { deletePreset, listPresets, reorderPresets, savePreset, watchPresets } f
 import type { Preset } from '@/lib/presets/types';
 import type { AppError } from '@/lib/errors';
 import { Badge, Button, EmptyState, ErrorBanner, IconButton, Skeleton, type BadgeTone } from '@/ui/components';
-import { authStatus } from '../lib/auth';
+import { connectionsStatus, presetConnection, workspaceName } from '../lib/connections';
 import { navigate } from '../lib/router';
 import { editorIssues } from './editor-model';
 
@@ -46,21 +46,30 @@ export function PresetsList() {
     return watchPresets(setPresets);
   }, []);
 
-  const connected = authStatus.value?.hasToken === true;
-  const dsIds = [...new Set((presets ?? []).map((p) => p.dataSourceId))].sort().join('|');
+  const list = connectionsStatus.value?.connections ?? [];
+  const connected = list.length > 0;
+  const multi = list.length > 1;
+  // Schemas are keyed by data source id (globally unique); each is read with
+  // the token of a workspace a preset using it resolves to.
+  const targets = new Map<string, string>();
+  for (const p of presets ?? []) {
+    const c = presetConnection(p, list);
+    if (c && !targets.has(p.dataSourceId)) targets.set(p.dataSourceId, c.id);
+  }
+  const targetKey = [...targets].map(([ds, c]) => `${ds}@${c}`).sort().join('|');
   useEffect(() => {
     if (!presets || !connected) return;
-    for (const dsId of new Set(presets.map((p) => p.dataSourceId))) {
+    for (const [dsId, connectionId] of targets) {
       if (schemas[dsId]) continue;
       setSchemas((s) => ({ ...s, [dsId]: { status: 'loading' } }));
-      void sendRequest({ type: 'ds/schema', dataSourceId: dsId }).then((res) => {
+      void sendRequest({ type: 'ds/schema', connectionId, dataSourceId: dsId }).then((res) => {
         setSchemas((s) => ({
           ...s,
           [dsId]: res.ok ? { status: 'ok', schema: res.data } : { status: 'error', error: res.error },
         }));
       });
     }
-  }, [dsIds, connected]);
+  }, [targetKey, connected]);
 
   async function move(index: number, delta: -1 | 1) {
     if (!presets) return;
@@ -151,13 +160,27 @@ export function PresetsList() {
       {presets !== null && presets.length > 0 && (
         <ol class="sco-preset-list" aria-label="Presets">
           {presets.map((p, i) => {
-            const status = connected ? presetStatus(p, schemas[p.dataSourceId]) : { tone: 'neutral' as const, label: 'Not connected' };
+            const conn = presetConnection(p, list);
+            const status: PresetStatus = !connected
+              ? { tone: 'neutral', label: 'Not connected' }
+              : conn === null
+                ? {
+                    tone: 'warning',
+                    label: p.connectionId === null ? 'Pick a workspace' : 'Workspace not connected',
+                    detail:
+                      p.connectionId === null
+                        ? 'Open the preset and pick the workspace that holds its database.'
+                        : `Connect the “${p.workspaceName ?? 'unknown'}” workspace in Workspaces, or open the preset and pick another one.`,
+                  }
+                : presetStatus(p, schemas[p.dataSourceId]);
+            const wsLabel = conn ? workspaceName(conn) : p.workspaceName;
             const count = p.mappings.length;
             return (
               <li key={p.id} class="sco-preset">
                 <a class="sco-preset__main" href={`#/presets/${encodeURIComponent(p.id)}`}>
                   <span class="sco-preset__name">{p.name}</span>
                   <span class="sco-preset__meta">
+                    {multi && wsLabel ? `${wsLabel} · ` : ''}
                     {p.dataSourceName} · {count} {count === 1 ? 'property' : 'properties'}
                     {p.screenshot.filesPropertyId ? ' + screenshot' : ''}
                   </span>

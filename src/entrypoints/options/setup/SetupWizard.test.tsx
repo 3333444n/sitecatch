@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { browser } from 'wxt/browser';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { ok } from '@/lib/errors';
-import { authStatus } from '../lib/auth';
+import { connectionsStatus } from '../lib/connections';
 import { resetRouterForTests } from '../lib/router';
-import { DS_RESOURCES, fail, mockBackend, mockPermissionContains, mockPermissionRequest } from '../test/mock-backend';
+import { ACME, connList, DS_RESOURCES, fail, GLOBEX, mockBackend, mockPermissionContains, mockPermissionRequest } from '../test/mock-backend';
 import { DatabaseList } from './DatabaseList';
 import { SetupWizard, stepsFor } from './SetupWizard';
 
@@ -24,7 +24,7 @@ async function continueTo(heading: RegExp) {
 beforeEach(() => {
   fakeBrowser.reset();
   resetRouterForTests();
-  authStatus.value = { hasToken: false, hostPermission: false };
+  connectionsStatus.value = { hostPermission: false, connections: [] };
 });
 
 afterEach(() => {
@@ -132,7 +132,7 @@ describe('setup wizard: token validation', () => {
 
   it('validates the token and shows workspace and bot name', async () => {
     const send = mockBackend({
-      'auth/validate': () => ok({ botName: 'Kicke’s token', workspaceName: 'Acme HQ' }),
+      'conn/add': () => ok({ ...ACME, botName: 'Kicke’s token', workspaceName: 'Acme HQ' }),
     });
     await openTokenStep();
     const input = screen.getByLabelText('Personal access token');
@@ -144,22 +144,22 @@ describe('setup wizard: token validation', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Check token' }));
     expect(await screen.findByText('Acme HQ')).toBeTruthy();
     expect(screen.getByText('Kicke’s token')).toBeTruthy();
-    expect(send).toHaveBeenCalledWith({ type: 'auth/validate', token: 'ntn_secret123', tokenKind: 'personal' });
+    expect(send).toHaveBeenCalledWith({ type: 'conn/add', token: 'ntn_secret123', tokenKind: 'personal' });
     expect(screen.getByRole('button', { name: /^Continue/ })).toHaveProperty('disabled', false);
   });
 
   it('validates immediately on paste', async () => {
-    const send = mockBackend({ 'auth/validate': () => ok({ botName: 'Bot', workspaceName: 'Pasted WS' }) });
+    const send = mockBackend({ 'conn/add': () => ok({ ...ACME, botName: 'Bot', workspaceName: 'Pasted WS' }) });
     await openTokenStep();
     const input = screen.getByLabelText('Personal access token');
     fireEvent.paste(input, { clipboardData: { getData: () => ' ntn_pasted ' } });
     expect(await screen.findByText('Pasted WS')).toBeTruthy();
-    expect(send).toHaveBeenCalledWith({ type: 'auth/validate', token: 'ntn_pasted', tokenKind: 'personal' });
+    expect(send).toHaveBeenCalledWith({ type: 'conn/add', token: 'ntn_pasted', tokenKind: 'personal' });
   });
 
   it('shows an actionable error when Notion rejects the token', async () => {
     mockBackend({
-      'auth/validate': () =>
+      'conn/add': () =>
         fail({ code: 'invalid-token', message: 'Notion rejected your token.', action: 'open-setup', detail: 'HTTP 401' }),
     });
     await openTokenStep();
@@ -174,26 +174,56 @@ describe('setup wizard: token validation', () => {
 });
 
 describe('setup wizard: databases', () => {
-  it('opens on the databases step when already connected, and can disconnect', async () => {
+  it('shows the workspaces overview when connected, with databases, and removes a workspace', async () => {
     grantState(true);
-    authStatus.value = { hasToken: true, tokenKind: 'connection', hostPermission: true, workspaceName: 'Acme' };
-    const send = mockBackend({ 'ds/list': () => ok([DS_RESOURCES]) });
+    connectionsStatus.value = { hostPermission: true, connections: [{ ...ACME, tokenKind: 'connection' }] };
+    const send = mockBackend({
+      'ds/list': () => ok([DS_RESOURCES]),
+      'conn/list': connList([]),
+    });
     vi.stubGlobal('confirm', vi.fn(() => true));
     render(<SetupWizard />);
-    expect(screen.getByRole('heading', { level: 2, name: /Your databases/ })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 1, name: 'Workspaces' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Acme' })).toBeTruthy();
+    expect(screen.getByText(/Internal connection · as Sitecatch/)).toBeTruthy();
+    // A single workspace's databases are shown right away.
     expect(await screen.findByText('Resources')).toBeTruthy();
-    expect(screen.getByText(/Acme · Internal connection/)).toBeTruthy();
+    expect(send).toHaveBeenCalledWith({ type: 'ds/list', connectionId: 'ws-acme' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
-    expect(send).toHaveBeenCalledWith({ type: 'auth/clear' });
-    expect(await screen.findByRole('heading', { level: 2, name: /Choose how to connect/ })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Acme' }));
+    expect(send).toHaveBeenCalledWith({ type: 'conn/remove', connectionId: 'ws-acme' });
+  });
+
+  it('“Add workspace” runs the wizard and comes back to the overview', async () => {
+    grantState(true);
+    connectionsStatus.value = { hostPermission: true, connections: [ACME] };
+    mockBackend({ 'ds/list': () => ok([]) });
+    render(<SetupWizard />);
+    await userEvent.click(screen.getByRole('button', { name: 'Add workspace' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Add a workspace' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: /Choose how to connect/ })).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: '← Workspaces' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Workspaces' })).toBeTruthy();
+  });
+
+  it('“Replace token” opens the token step for that workspace and warns when the token is for another one', async () => {
+    grantState(true);
+    connectionsStatus.value = { hostPermission: true, connections: [ACME, GLOBEX] };
+    const send = mockBackend({ 'conn/add': () => ok({ ...GLOBEX, id: 'ws-other', workspaceName: 'Other' }) });
+    render(<SetupWizard />);
+    await userEvent.click(screen.getByRole('button', { name: 'Replace token for Globex' }));
+    expect(screen.getByRole('heading', { level: 1, name: 'Replace the token for “Globex”' })).toBeTruthy();
+    await userEvent.type(screen.getByLabelText('API token'), 'ntn_x');
+    await userEvent.click(screen.getByRole('button', { name: 'Check token' }));
+    expect(send).toHaveBeenCalledWith({ type: 'conn/add', token: 'ntn_x', tokenKind: 'connection' });
+    expect(await screen.findByText('That token is for another workspace')).toBeTruthy();
   });
 });
 
 describe('DatabaseList', () => {
   it('shows PAT troubleshooting when no databases are visible', async () => {
     mockBackend({ 'ds/list': () => ok([]) });
-    render(<DatabaseList tokenKind="personal" />);
+    render(<DatabaseList connectionId="ws-acme" tokenKind="personal" />);
     expect(await screen.findByText('No databases yet')).toBeTruthy();
     expect(screen.getByText('Can’t see your database?')).toBeTruthy();
     expect(screen.getByText(/Wrong workspace/)).toBeTruthy();
@@ -203,7 +233,7 @@ describe('DatabaseList', () => {
 
   it('shows connection troubleshooting (sharing) for internal connections', async () => {
     mockBackend({ 'ds/list': () => ok([]) });
-    render(<DatabaseList tokenKind="connection" />);
+    render(<DatabaseList connectionId="ws-acme" tokenKind="connection" />);
     expect(await screen.findByText(/Not shared with the connection yet/)).toBeTruthy();
     expect(screen.getByText(/shared parent page/)).toBeTruthy();
     expect(screen.getByText(/Token revoked or refreshed/)).toBeTruthy();
@@ -213,20 +243,20 @@ describe('DatabaseList', () => {
     const send = mockBackend({
       'ds/list': (req) => ok(req.query === 'fav' ? [{ id: 'ds-fav', name: 'Fav websites' }] : [DS_RESOURCES]),
     });
-    render(<DatabaseList tokenKind="personal" searchDelayMs={0} />);
+    render(<DatabaseList connectionId="ws-acme" tokenKind="personal" searchDelayMs={0} />);
     expect(await screen.findByText('Resources')).toBeTruthy();
     await userEvent.type(screen.getByRole('searchbox', { name: 'Search databases' }), 'fav');
     expect(await screen.findByText('Fav websites')).toBeTruthy();
-    expect(send).toHaveBeenCalledWith({ type: 'ds/list', query: 'fav' });
+    expect(send).toHaveBeenCalledWith({ type: 'ds/list', connectionId: 'ws-acme', query: 'fav' });
     send.mockClear();
     await userEvent.click(screen.getByRole('button', { name: 'Refresh' }));
-    expect(send).toHaveBeenCalledWith({ type: 'ds/list', query: 'fav' });
+    expect(send).toHaveBeenCalledWith({ type: 'ds/list', connectionId: 'ws-acme', query: 'fav' });
   });
 
   it('picks a database when onPick is given', async () => {
     mockBackend({ 'ds/list': () => ok([DS_RESOURCES]) });
     const onPick = vi.fn();
-    render(<DatabaseList tokenKind="personal" onPick={onPick} />);
+    render(<DatabaseList connectionId="ws-acme" tokenKind="personal" onPick={onPick} />);
     await userEvent.click(await screen.findByRole('button', { name: /Resources/ }));
     expect(onPick).toHaveBeenCalledWith(DS_RESOURCES);
   });

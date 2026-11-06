@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { err, ok, type AppError, type Result } from '@/lib/errors';
 import { sendRequest } from '@/lib/messaging/client';
-import type { AnyRequest, JobState, Request, RequestType, Response } from '@/lib/messaging/protocol';
+import type { AnyRequest, ConnectionSummary, JobState, Request, RequestType, Response } from '@/lib/messaging/protocol';
 import { savePreset } from '@/lib/presets/storage';
 import { makeCapture, makePreset, resourcesSchema } from '@/lib/presets/testing';
 import type { Mapping, Preset } from '@/lib/presets/types';
@@ -41,6 +41,15 @@ const RATING_REQUIRED: Mapping = {
   editableInPopup: true,
 };
 
+const ACME: ConnectionSummary = {
+  id: 'ws-acme',
+  tokenKind: 'personal',
+  botName: 'Sitecatch',
+  workspaceName: 'Acme',
+  validatedAt: '2026-10-18T11:00:00.000Z',
+};
+const GLOBEX: ConnectionSummary = { ...ACME, id: 'ws-globex', workspaceName: 'Globex' };
+
 const PRESET = makePreset({ mappings: [TITLE, URL_MAPPING], dedupe: { propertyId: 'p%3Aurl' } });
 
 let routes: Routes;
@@ -65,7 +74,7 @@ async function setup(presets: Preset[] = [PRESET], extraRoutes: Routes = {}) {
 beforeEach(() => {
   fakeBrowser.reset();
   routes = {
-    'auth/status': () => ok({ hasToken: true, hostPermission: true }),
+    'conn/list': () => ok({ hostPermission: true, connections: [ACME] }),
     'capture/run': () => ok(makeCapture()),
     'ds/schema': (r) => ok({ ...resourcesSchema, id: r.dataSourceId }),
     'dup/check': () => ok({ matches: [] }),
@@ -92,7 +101,7 @@ const saveButton = () => screen.findByRole('button', { name: /^Save to / });
 
 describe('setup states', () => {
   it('shows NoSetup without a token and opens options #/setup', async () => {
-    await setup([PRESET], { 'auth/status': () => ok({ hasToken: false, hostPermission: true }) });
+    await setup([PRESET], { 'conn/list': () => ok({ hostPermission: true, connections: [] }) });
     expect(await screen.findByText('Connect Sitecatch to Notion')).toBeTruthy();
     expect(requests('capture/run')).toHaveLength(0);
     await userEvent.click(screen.getByRole('button', { name: 'Open setup' }));
@@ -104,7 +113,7 @@ describe('setup states', () => {
 
   it('offers Grant access when only the host permission is missing (requested synchronously)', async () => {
     const request = vi.spyOn(fakeBrowser.permissions, 'request').mockReturnValue(Promise.resolve(false) as never);
-    await setup([PRESET], { 'auth/status': () => ok({ hasToken: true, hostPermission: false }) });
+    await setup([PRESET], { 'conn/list': () => ok({ hostPermission: false, connections: [ACME] }) });
     const grant = await screen.findByRole('button', { name: 'Grant access' });
     fireEvent.click(grant);
     expect(request).toHaveBeenCalledWith({ origins: ['https://api.notion.com/*'] });
@@ -116,6 +125,47 @@ describe('setup states', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Create a preset' }));
     await waitFor(() => {
       expect(tabsCreate).toHaveBeenCalledWith({ url: expect.stringMatching(/#\/presets$/) as unknown });
+    });
+  });
+});
+
+describe('workspaces', () => {
+  it('reads an unassigned preset’s schema with the only connection', async () => {
+    await setup();
+    await waitFor(() => {
+      expect(requests('ds/schema')).toEqual([{ type: 'ds/schema', connectionId: 'ws-acme', dataSourceId: 'ds-resources' }]);
+    });
+  });
+
+  it('groups presets by workspace when several are connected', async () => {
+    const a = makePreset({ id: 'a', name: 'Reading', connectionId: 'ws-acme', workspaceName: 'Acme' });
+    const b = makePreset({ id: 'b', name: 'Clients', connectionId: 'ws-globex', workspaceName: 'Globex' });
+    await setup([a, b], { 'conn/list': () => ok({ hostPermission: true, connections: [ACME, GLOBEX] }) });
+    const picker = await screen.findByRole<HTMLSelectElement>('combobox', { name: 'Preset' });
+    const groups = [...picker.querySelectorAll('optgroup')].map((g) => g.label);
+    expect(groups).toEqual(['Acme', 'Globex']);
+    await waitFor(() => {
+      expect(requests('ds/schema')[0]).toMatchObject({ connectionId: 'ws-acme' });
+    });
+  });
+
+  it('no group headers with a single workspace', async () => {
+    await setup();
+    const picker = await screen.findByRole<HTMLSelectElement>('combobox', { name: 'Preset' });
+    expect(picker.querySelectorAll('optgroup')).toHaveLength(0);
+  });
+
+  it('an unresolved preset is listed but saving shows the actionable error', async () => {
+    const gone = makePreset({ ...PRESET, connectionId: 'ws-gone', workspaceName: 'Old Co' });
+    await setup([gone], { 'conn/list': () => ok({ hostPermission: true, connections: [ACME, GLOBEX] }) });
+    expect(
+      await screen.findByText('Connect the “Old Co” workspace in Sitecatch settings, or pick a workspace for this preset.'),
+    ).toBeTruthy();
+    expect(requests('ds/schema')).toHaveLength(0);
+    expect((await saveButton()).hasAttribute('disabled') || (await saveButton()).getAttribute('aria-disabled') === 'true').toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Edit preset' }));
+    await waitFor(() => {
+      expect(tabsCreate).toHaveBeenCalledWith({ url: expect.stringMatching(/#\/presets\/preset-1$/) as unknown });
     });
   });
 });
