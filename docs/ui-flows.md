@@ -23,9 +23,13 @@ stateDiagram-v2
   Success --> [*]
 ```
 
+### Header
+
+Every popup state (loading, no setup, no presets, boot error, form — including restricted pages, unresolved presets and save errors — saving and success) starts with the same header row (`PopupHeader`): the "Sitecatch" wordmark, the **preset picker** when there are presets (it flexes to fill the row), and a fixed-size gear **Settings** icon button at the right end (`aria-label` "Open Sitecatch settings", tooltip "Settings", 32×32 px). The button is never disabled. It calls `browser.runtime.openOptionsPage()` — which focuses an already open options tab instead of opening another, on the options page's default route — and closes the popup; if that call rejects it opens `options.html` in a new tab instead.
+
 ### No setup
 
-Shown when `conn/list` reports no connections or `hostPermission: false`. Message ("Connect Sitecatch to Notion to start saving") plus an **Open setup** button that opens the options wizard. If only the host permission is missing, a **Grant access** button calls `browser.permissions.request` from the click handler. There are no other controls.
+Shown when `conn/list` reports no connections or `hostPermission: false`. Message ("Connect Sitecatch to Notion to start saving") plus an **Open setup** button that opens the options wizard. If only the host permission is missing, a **Grant access** button calls `browser.permissions.request` from the click handler. Apart from the header's settings button there are no other controls.
 
 If there are no presets yet: "Create your first preset" → opens Options → Presets.
 

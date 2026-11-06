@@ -20,6 +20,11 @@
   flex: none;
 }
 
+.popup-header__settings {
+  flex: none;
+  margin-inline-start: auto;
+}
+
 .popup-picker {
   flex: 1;
   min-width: 0;

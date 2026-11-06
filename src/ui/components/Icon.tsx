@@ -19,7 +19,8 @@ export type IconName =
   | 'file'
   | 'database'
   | 'search'
-  | 'lock';
+  | 'lock'
+  | 'settings';
 
 const PATHS: Record<IconName, JSX.Element> = {
   check: <path d="M3.5 8.5l3 3 6-7" />,
@@ -94,6 +95,13 @@ const PATHS: Record<IconName, JSX.Element> = {
     <>
       <rect x="3" y="7" width="10" height="7" rx="1.5" />
       <path d="M5.25 7V5a2.75 2.75 0 015.5 0v2" />
+    </>
+  ),
+  // Own drawing (8-tooth gear outline + hub), not copied from an icon set.
+  settings: (
+    <>
+      <path d="M12.77 6.9l1.67.2v1.8l-1.67.2-.61 1.5 1.03 1.31-1.28 1.28-1.31-1.03-1.5.61-.2 1.67H7.1l-.2-1.67-1.5-.61-1.31 1.03-1.28-1.28 1.03-1.31-.61-1.5-1.67-.2V7.1l1.67-.2.61-1.5-1.03-1.31 1.28-1.28 1.31 1.03 1.5-.61.2-1.67h1.8l.2 1.67 1.5.61 1.31-1.03 1.28 1.28-1.03 1.31z" />
+      <circle cx="8" cy="8" r="2" />
     </>
   ),
 };

@@ -27,6 +27,23 @@ export async function openOptions(hash: string): Promise<void> {
   closePopup();
 }
 
+/**
+ * Opens (or focuses an already open) options page on its default route and closes the popup.
+ * Falls back to a new options tab if `openOptionsPage` rejects.
+ */
+export async function openSettings(): Promise<void> {
+  try {
+    await browser.runtime.openOptionsPage();
+  } catch {
+    try {
+      await browser.tabs.create({ url: browser.runtime.getURL('/options.html') });
+    } catch {
+      // Nothing else to try; still close the popup.
+    }
+  }
+  closePopup();
+}
+
 export async function openInNewTab(url: string): Promise<void> {
   await browser.tabs.create({ url });
 }

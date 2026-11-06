@@ -63,8 +63,10 @@ export function Button({
 export interface IconButtonProps
   extends Omit<ButtonHTMLAttributes, 'class' | 'size' | 'icon' | 'children'> {
   icon: IconName;
-  /** Required accessible name (also used as tooltip). */
+  /** Required accessible name (also used as tooltip unless `tooltip` is set). */
   label: string;
+  /** Shorter tooltip than the accessible name (e.g. "Settings"). Defaults to `label`. */
+  tooltip?: string;
   variant?: Exclude<ButtonVariant, 'primary'>;
   size?: ButtonSize;
   class?: string;
@@ -73,6 +75,7 @@ export interface IconButtonProps
 export function IconButton({
   icon,
   label,
+  tooltip,
   variant = 'ghost',
   size = 'md',
   type = 'button',
@@ -85,7 +88,7 @@ export function IconButton({
       type={type}
       class={cx('sc-icon-button', `sc-icon-button--${size}`, `sc-button--${variant}`, className)}
       aria-label={label}
-      title={label}
+      title={tooltip ?? label}
     >
       <Icon name={icon} size={size === 'sm' ? 14 : 16} />
     </button>
