@@ -22,6 +22,8 @@ export function propertyFor(mapping: Mapping, schema: DataSourceSchema | null): 
 
 export interface CaptureFormProps {
   preset: Preset;
+  /** The preset's resolved workspace connection (relation page search runs with it). */
+  connectionId?: string;
   schema: DataSourceSchema | null;
   values: FormValues;
   onChange: (propertyId: string, value: FormValue) => void;
@@ -33,7 +35,7 @@ export interface CaptureFormProps {
   fieldsRef?: Ref<HTMLDivElement>;
 }
 
-export function CaptureForm({ preset, schema, values, onChange, missing, showMissing, disabled = false, fieldsRef }: CaptureFormProps) {
+export function CaptureForm({ preset, connectionId, schema, values, onChange, missing, showMissing, disabled = false, fieldsRef }: CaptureFormProps) {
   const visible = preset.mappings.filter(isVisibleMapping);
   const fixed = preset.mappings.filter((m) => !isVisibleMapping(m));
   return (
@@ -46,6 +48,7 @@ export function CaptureForm({ preset, schema, values, onChange, missing, showMis
             return (
               <PropertyInput
                 key={m.propertyId}
+                connectionId={connectionId}
                 property={propertyFor(m, schema)}
                 value={value}
                 disabled={disabled}

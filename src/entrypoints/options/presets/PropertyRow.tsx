@@ -38,6 +38,8 @@ export interface PropertyRowProps {
   issues: PresetIssue[];
   /** This files property receives the screenshot (configured in the Screenshot section). */
   isScreenshotTarget: boolean;
+  /** The preset's workspace connection (relation page search runs with it). */
+  connectionId: string;
   onChange: (mapping: Mapping | null) => void;
   onUseAsScreenshotTarget?: () => void;
 }
@@ -47,6 +49,7 @@ export function PropertyRow({
   mapping,
   issues,
   isScreenshotTarget,
+  connectionId,
   onChange,
   onUseAsScreenshotTarget,
 }: PropertyRowProps) {
@@ -95,7 +98,7 @@ export function PropertyRow({
               onChange(changeSourceKind(mapping, property, k));
             }}
           />
-          <SourceEditor property={property} mapping={mapping} onChange={onChange} onUseAsScreenshotTarget={onUseAsScreenshotTarget} />
+          <SourceEditor property={property} mapping={mapping} connectionId={connectionId} onChange={onChange} onUseAsScreenshotTarget={onUseAsScreenshotTarget} />
         </div>
       )}
 
@@ -115,11 +118,13 @@ export function PropertyRow({
 function SourceEditor({
   property,
   mapping,
+  connectionId,
   onChange,
   onUseAsScreenshotTarget,
 }: {
   property: WritableProperty;
   mapping: Mapping;
+  connectionId: string;
   onChange: (m: Mapping) => void;
   onUseAsScreenshotTarget?: () => void;
 }) {
@@ -202,6 +207,7 @@ function SourceEditor({
       <div class="sco-prop__fields">
         <PropertyInput
           property={property}
+          connectionId={connectionId}
           label="Default value (optional)"
           value={value}
           onChange={(v) => {
@@ -224,6 +230,7 @@ function SourceEditor({
     <div class="sco-prop__fields">
       <PropertyInput
         property={property}
+        connectionId={connectionId}
         label="Value"
         required
         value={source.value}

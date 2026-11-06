@@ -36,6 +36,7 @@ function Harness(props: {
       <RelationPicker
         id="rel-input"
         dataSourceId={props.dataSourceId === null ? undefined : (props.dataSourceId ?? 'ds-projects')}
+        connectionId="conn-1"
         value={value}
         search={props.search}
         debounceMs={0}

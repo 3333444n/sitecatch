@@ -23,6 +23,8 @@ export interface PropertyInputProps {
   hint?: ComponentChildren;
   /** Label override (defaults to the property name). */
   label?: ComponentChildren;
+  /** Workspace connection used by relation page search (the preset's resolved connection). */
+  connectionId?: string;
   /** Page search for relation properties (defaults to the background's `pages/search`; injected in tests). */
   searchPages?: PageSearch;
 }
@@ -94,6 +96,7 @@ export function PropertyInput({
   hint,
   label,
   searchPages,
+  connectionId,
 }: PropertyInputProps) {
   const name = label ?? property.name;
   const fieldProps = { label: name, required, error, hint };
@@ -222,6 +225,7 @@ export function PropertyInput({
             value={relationOf(value)}
             disabled={disabled}
             listLabel={`Pages for ${property.name}`}
+            connectionId={connectionId}
             search={searchPages}
             onChange={(refs) => {
               onChange({ kind: 'relation', value: refs });

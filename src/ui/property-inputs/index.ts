@@ -7,7 +7,7 @@ export { DateInput, type DateInputProps, type DateValue } from './DateInput';
 export { FilesList, fileRefLabel, type FilesListProps } from './FilesList';
 export {
   RelationPicker,
-  defaultPageSearch,
+  backgroundPageSearch,
   type PageSearch,
   type RelationPickerProps,
 } from './RelationPicker';

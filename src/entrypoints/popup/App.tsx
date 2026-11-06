@@ -654,6 +654,7 @@ export function App() {
         {values ? (
           <CaptureForm
             preset={preset}
+            connectionId={connectionId ?? undefined}
             schema={schemaData}
             values={values}
             onChange={onFieldChange}

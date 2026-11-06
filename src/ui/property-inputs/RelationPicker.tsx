@@ -13,14 +13,19 @@ import { Spinner } from '@/ui/components/Spinner';
 /** Searches the pages of a data source (defaults to the background's `pages/search`). */
 export type PageSearch = (dataSourceId: string, query: string) => Promise<Result<PageOption[]>>;
 
-export const defaultPageSearch: PageSearch = (dataSourceId, query) =>
-  sendRequest({ type: 'pages/search', dataSourceId, query: query || undefined });
+/** The background's `pages/search`, run with the given workspace connection's token. */
+export function backgroundPageSearch(connectionId: string): PageSearch {
+  return (dataSourceId, query) =>
+    sendRequest({ type: 'pages/search', connectionId, dataSourceId, query: query || undefined });
+}
 
 export const RELATION_SEARCH_DEBOUNCE_MS = 250;
 
 export interface RelationPickerProps {
   /** Data source the relation points to; undefined when the schema doesn't say (search is unavailable). */
   dataSourceId: string | undefined;
+  /** Workspace connection whose token searches `dataSourceId` (the preset's connection). */
+  connectionId: string | undefined;
   /** Linked pages, in order. */
   value: RelationRef[];
   onChange: (value: RelationRef[]) => void;
@@ -29,7 +34,7 @@ export interface RelationPickerProps {
   id?: string;
   /** Accessible name for the results list. */
   listLabel?: string;
-  /** Injected for tests. */
+  /** Injected for tests; defaults to `backgroundPageSearch(connectionId)`. */
   search?: PageSearch;
   debounceMs?: number;
 }
@@ -52,13 +57,14 @@ function iconText(option: PageOption): string | null {
  */
 export function RelationPicker({
   dataSourceId,
+  connectionId,
   value,
   onChange,
   disabled = false,
   placeholder = 'Search pages to link',
   id,
   listLabel = 'Pages',
-  search = defaultPageSearch,
+  search,
   debounceMs = RELATION_SEARCH_DEBOUNCE_MS,
 }: RelationPickerProps) {
   const field = useFieldControl(id);
@@ -72,18 +78,19 @@ export function RelationPicker({
   const seq = useRef(0);
   const listId = `${field.id}-listbox`;
   const statusId = `${field.id}-status`;
-  const unavailable = dataSourceId === undefined;
+  const run = search ?? (connectionId !== undefined ? backgroundPageSearch(connectionId) : undefined);
+  const unavailable = dataSourceId === undefined || run === undefined;
   const trimmed = query.trim();
 
   useEffect(() => {
-    if (!open || dataSourceId === undefined) return;
+    if (!open || dataSourceId === undefined || run === undefined) return;
     const target = dataSourceId;
     const mySeq = ++seq.current;
     const delay = fetchedOnce.current ? debounceMs : 0;
     const timer = setTimeout(() => {
       fetchedOnce.current = true;
       setState({ status: 'loading', query: trimmed });
-      void search(target, trimmed).then(
+      void run(target, trimmed).then(
         (res) => {
           if (mySeq !== seq.current) return;
           setState(
@@ -106,8 +113,8 @@ export function RelationPicker({
     return () => {
       clearTimeout(timer);
     };
-    // `search` is left out on purpose: callers pass inline functions, and a new identity must not refetch.
-  }, [open, trimmed, dataSourceId, retryNonce, debounceMs]);
+    // `run` is left out on purpose: callers pass inline functions, and a new identity must not refetch.
+  }, [open, trimmed, dataSourceId, connectionId, retryNonce, debounceMs]);
 
   const options = state.status === 'ok' ? state.options : [];
   const selectedIds = new Set(value.map((r) => r.id));

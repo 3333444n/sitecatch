@@ -301,28 +301,28 @@ describe('ds/list and ds/schema', () => {
 describe('pages/search', () => {
   const target = { id: 'ds-projects', name: 'Projects', properties: { 'Tt%3D': { id: 'Tt%3D', name: 'Project', type: 'title' as const } }, titlePropertyId: 'Tt%3D' };
 
-  it('needs a token', async () => {
+  it('needs a connected workspace for the requested connection', async () => {
     const { deps } = makeDeps(fakeClient().client);
-    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', dataSourceId: 'ds-projects' }, sender);
+    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', connectionId: CONN_ID, dataSourceId: 'ds-projects' }, sender);
     expect(res).toMatchObject({ ok: false, error: { code: 'no-token' } });
   });
 
   it('rejects a missing data source id without calling Notion', async () => {
-    await authItem.setValue(makeAuth());
+    await connectionsItem.setValue([makeConnection()]);
     const { client } = fakeClient(target);
     const { deps } = makeDeps(client);
-    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', dataSourceId: '' }, sender);
+    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', connectionId: CONN_ID, dataSourceId: '' }, sender);
     expect(res).toMatchObject({ ok: false, error: { code: 'validation' } });
     expect(client.searchPages).not.toHaveBeenCalled();
   });
 
   it('searches the target by its title property with the trimmed query and the result limit', async () => {
-    await authItem.setValue(makeAuth());
+    await connectionsItem.setValue([makeConnection()]);
     const { client } = fakeClient(target);
     client.searchPages.mockResolvedValueOnce(ok([{ id: 'p-1', title: 'Kineo Website' }]));
     const { deps } = makeDeps(client);
     const res = await createHandlers(deps)['pages/search'](
-      { type: 'pages/search', dataSourceId: 'ds-projects', query: ' Kineo ' },
+      { type: 'pages/search', connectionId: CONN_ID, dataSourceId: 'ds-projects', query: ' Kineo ' },
       sender,
     );
     expect(res).toEqual({ ok: true, data: [{ id: 'p-1', title: 'Kineo Website' }] });
@@ -335,12 +335,12 @@ describe('pages/search', () => {
   });
 
   it('sends no query when it is blank and reuses the cached schema', async () => {
-    await authItem.setValue(makeAuth());
+    await connectionsItem.setValue([makeConnection()]);
     const { client } = fakeClient(target);
     const { deps } = makeDeps(client);
     const h = createHandlers(deps);
-    await h['pages/search']({ type: 'pages/search', dataSourceId: 'ds-projects', query: '  ' }, sender);
-    await h['pages/search']({ type: 'pages/search', dataSourceId: 'ds-projects' }, sender);
+    await h['pages/search']({ type: 'pages/search', connectionId: CONN_ID, dataSourceId: 'ds-projects', query: '  ' }, sender);
+    await h['pages/search']({ type: 'pages/search', connectionId: CONN_ID, dataSourceId: 'ds-projects' }, sender);
     expect(client.getDataSource).toHaveBeenCalledTimes(1);
     expect(client.searchPages).toHaveBeenLastCalledWith('ds-projects', {
       titlePropertyId: 'Tt%3D',
@@ -350,11 +350,11 @@ describe('pages/search', () => {
   });
 
   it('returns the schema error when the target is not shared', async () => {
-    await authItem.setValue(makeAuth());
+    await connectionsItem.setValue([makeConnection()]);
     const { client } = fakeClient();
     client.getDataSource.mockResolvedValueOnce(err('db-not-shared', 'share it', { action: 'reshare-db' }));
     const { deps } = makeDeps(client);
-    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', dataSourceId: 'x' }, sender);
+    const res = await createHandlers(deps)['pages/search']({ type: 'pages/search', connectionId: CONN_ID, dataSourceId: 'x' }, sender);
     expect(res).toMatchObject({ ok: false, error: { code: 'db-not-shared', action: 'reshare-db' } });
     expect(client.searchPages).not.toHaveBeenCalled();
   });

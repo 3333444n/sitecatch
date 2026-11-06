@@ -131,7 +131,7 @@ describe('preset editor', () => {
       'pages/search': (req) =>
         ok([{ id: 'p-kineo', title: 'Kineo Website' }].filter((p) => p.title.includes(req.query ?? ''))),
     });
-    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     await include('Related');
     const related = row('Related');
     expect(within(related).queryByRole('radio', { name: 'From the page' })).toBeNull();
@@ -139,7 +139,13 @@ describe('preset editor', () => {
     expect(screen.getByText(/Set a fixed value for “Related”/, { selector: '.sco-issue-list li' })).toBeTruthy();
     await userEvent.click(within(related).getByRole('combobox', { name: /Value/ }));
     await userEvent.click(await within(related).findByRole('option', { name: /Kineo Website/ }));
-    expect(mock).toHaveBeenCalledWith({ type: 'pages/search', dataSourceId: 'ds-projects', query: undefined });
+    // Searches with the preset's workspace token.
+    expect(mock).toHaveBeenCalledWith({
+      type: 'pages/search',
+      connectionId: ACME.id,
+      dataSourceId: 'ds-projects',
+      query: undefined,
+    });
     expect(within(related).getByRole('button', { name: 'Remove Kineo Website' })).toBeTruthy();
     expect(screen.queryByText(/Set a fixed value for “Related”/, { selector: '.sco-issue-list li' })).toBeNull();
   });

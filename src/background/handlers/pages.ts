@@ -17,8 +17,8 @@ export function createPageHandlers(deps: BackgroundDeps, clients: ClientProvider
         detail: 'missing dataSourceId',
       });
     }
-    // Single place where the client is chosen (per-workspace selection is wired in here later).
-    const authed = await clients.requireClient();
+    // Search with the preset's workspace token: the related database lives in that workspace.
+    const authed = await clients.requireClient(request.connectionId);
     if (!authed.ok) return authed;
     const { client } = authed.data;
 

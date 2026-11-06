@@ -254,6 +254,7 @@ export function PresetEditor({
               mapping={mappingFor(prop.id)}
               issues={issuesFor(prop.id)}
               isScreenshotTarget={draft.screenshot.filesPropertyId === prop.id}
+              connectionId={connection.id}
               onChange={(m) => {
                 update((p) => (m === null ? removeMapping(p, prop.id) : upsertMapping(p, m)));
               }}
