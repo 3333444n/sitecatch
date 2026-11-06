@@ -13,14 +13,24 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source or as a signe
 - Signed on AMO's **unlisted** channel (self-distributed `.xpi`, 2026-10-18). The gecko id `sitecatch@sitecatch.app` is final and permanent. Process: [releasing.md](./releasing.md).
 - Manually tested end to end in Firefox with a personal access token on a Free-plan workspace (2026-10-18). Verified and still-open items: [testing.md](./testing.md#manual-e2e-results).
 
+## Unreleased
+
+On `main`, not in a release yet.
+
+- **Multiple workspace connections**: one token per Notion workspace (`local:connections`, `conn/add` / `conn/list` / `conn/remove`), each preset owns its workspace (preset `schemaVersion` 2, `connectionId` / `workspaceName`), Options → **Workspaces** overview with **Add workspace** / **Replace token** / **Remove**, workspace picker in the preset editor, popup presets grouped by workspace. A v0.1 token (`local:auth`) migrates automatically ([ADR 0010](./decisions/0010-multiple-workspace-connections.md), [architecture.md](./architecture.md#workspaces-connections)).
+- **Relation properties**: link pages of a related database from a fixed value or an ask-in-popup searchable picker (`pages/search`, `RelationPicker`, `relation` form value) ([preset-model.md](./preset-model.md#relations)).
+
 ## Next
 
-- Finish the manual E2E: Chrome smoke test, internal connection path, restricted pages, popup closed mid-save, import/export, the old `notion.so/profile/integrations` redirect.
+- Finish the manual E2E: Chrome smoke test, internal connection path, restricted pages, popup closed mid-save, import/export, the old `notion.so/profile/integrations` redirect, and the unreleased multi-workspace and relation flows ([checklist](./testing.md#manual-e2e-checklist)).
 - Capture the setup screenshots setup-1…13 into `public/setup/` ([checklist](./setup-guide.md#screenshots-to-capture)). Until then the wizard shows "Screenshot coming soon".
+- **Relation target change detection**: a preset keeps no snapshot of a relation's target database, so if the relation is re-pointed in Notion, stored page ids are only caught when Notion rejects the save ([preset-model.md](./preset-model.md#validation)). Store the target and report it as a preset issue.
+- **Single-page relations**: a relation that Notion limits to one page isn't enforced by the picker, which lets you link several.
 
 ### Known issues
 
 - Popup: the favicon badge overlaps the top-left corner of the screenshot thumbnail.
+- **Migrated v0.1 connections don't resolve on other devices.** A token migrated from `local:auth` gets a `legacy-<uuid>` connection id (v0.1 never stored the workspace id). Presets pinned to it sync to other devices, where the same workspace is connected under its real workspace id, so they show as "not connected" there. Picking the workspace in that device's preset editor re-pins the preset to the real id, which then doesn't resolve on the first device. Workaround: on the first device, **Remove** the migrated workspace and add it again (it then gets the real workspace id), and re-pick the workspace for its presets once.
 
 ## Later
 

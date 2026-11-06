@@ -13,6 +13,7 @@ function stubHandlers(overrides: Partial<Handlers> = {}): Handlers {
     'conn/remove': notCalled,
     'ds/list': notCalled,
     'ds/schema': notCalled,
+    'pages/search': notCalled,
     'capture/run': notCalled,
     'dup/check': notCalled,
     'save/start': notCalled,

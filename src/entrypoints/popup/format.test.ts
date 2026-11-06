@@ -33,6 +33,9 @@ describe('summarizeValue', () => {
     expect(
       summarizeValue({ kind: 'files', value: [{ kind: 'screenshot' }, { kind: 'external', url: 'https://x.com/a/og.png' }] }),
     ).toBe('Screenshot, og.png');
+    expect(
+      summarizeValue({ kind: 'relation', value: [{ id: 'a', title: 'Kineo Website' }, { id: 'b', title: '' }] }),
+    ).toBe('Kineo Website, Untitled');
   });
 });
 

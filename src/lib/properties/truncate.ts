@@ -7,6 +7,9 @@
 export const RICH_TEXT_CHUNK = 2000;
 export const RICH_TEXT_MAX_ITEMS = 100;
 export const MULTI_SELECT_MAX = 100;
+
+/** Max related pages set on one relation property in a single request. */
+export const RELATION_MAX = 100;
 export const URL_MAX = 2000;
 export const EMAIL_MAX = 200;
 export const PHONE_MAX = 200;

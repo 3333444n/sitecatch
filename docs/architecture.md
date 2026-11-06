@@ -8,11 +8,11 @@ Sitecatch is a Manifest V3 browser extension built with [WXT](https://wxt.dev), 
 flowchart LR
   subgraph UI["UI pages (Preact)"]
     P[Popup<br/>src/entrypoints/popup]
-    O[Options / setup wizard<br/>src/entrypoints/options]
+    O[Options / workspaces & setup<br/>src/entrypoints/options]
   end
   subgraph BG["Background (event page / service worker)"]
     R[router.ts]
-    H[handlers/<br/>connections · dataSources · capture<br/>duplicates · save · jobs]
+    H[handlers/<br/>connections · dataSources · pages · capture<br/>duplicates · save · jobs]
     SP[save-pipeline.ts]
   end
   subgraph LIB["src/lib (pure-ish modules)"]
@@ -39,8 +39,8 @@ flowchart LR
 | Component | Location | Responsibility |
 | --- | --- | --- |
 | Popup | `src/entrypoints/popup/` | Preset picker, capture form, duplicate banner, save status. Short-lived: closes whenever the user clicks away. |
-| Options page | `src/entrypoints/options/` | Setup wizard (opens on install), presets list/editor, settings, import/export, help. |
-| Background | `src/entrypoints/background.ts`, `src/background/` | Message `router.ts` dispatches to one handler per request type (`handlers/`). `save-pipeline.ts` runs saves. It owns the token, all Notion calls, capture and storage writes for jobs. |
+| Options page | `src/entrypoints/options/` | Workspaces (setup wizard on first run, opens on install; then the connected workspaces with Add workspace / Replace token / Remove), presets list/editor, settings, import/export, help. |
+| Background | `src/entrypoints/background.ts`, `src/background/` | Message `router.ts` dispatches to one handler per request type (`handlers/`). `save-pipeline.ts` runs saves. It owns the tokens (one per connected workspace), all Notion calls, capture and storage writes for jobs. |
 | In-page probe | `src/lib/extract/probe.ts` | A self-contained function injected with `scripting.executeScript` into the active tab. It returns `RawPageData` (serializable, no DOM nodes). Sitecatch declares no content scripts. |
 | Notion client | `src/lib/notion/` | Plain `fetch`, `Notion-Version: 2026-03-11`, rate-limit queue, retries, multipart upload, error mapping. See [notion-api.md](./notion-api.md). |
 | Extractors | `src/lib/extract/` | Registry of pure `ExtractorDef.extract(raw, ctx)` functions (`needsPage: false` ones run even when the page can't be probed). `compat-table.ts` holds the single extractor-output → property-type table. See [extractors.md](./extractors.md). |
@@ -53,7 +53,7 @@ flowchart LR
 
 Rules (from [AGENTS.md](../AGENTS.md)):
 
-- **All Notion API calls happen in the background.** UI pages and the probe never see the token.
+- **All Notion API calls happen in the background.** UI pages and the probe never see a token.
 - Every message response is a `Result<T>` (`src/lib/errors.ts`). Handlers never throw.
 - Contract files (`errors.ts`, `notion/types.ts`, `extract/types.ts`, `extract/compat-table.ts`, `presets/types.ts`, `messaging/*`, `storage/items.ts`, `ui/theme.css`) change only through the orchestrator.
 
@@ -68,6 +68,7 @@ UI pages call `sendRequest({ type, ...params })` (`src/lib/messaging/client.ts`)
 | `conn/remove` | `{ connectionId }` | `null` | Forgets one connection's token and clears the session schema cache. Presets bound to it stay (they show as needing a workspace). Also clears the legacy `local:auth` copy when it held that token (or when no connections remain). |
 | `ds/list` | `{ connectionId, query? }` | `DataSourceSummary[]` | `POST /v1/search` filtered to data sources, with that connection's token. |
 | `ds/schema` | `{ connectionId, dataSourceId, force? }` | `DataSourceSchema` | Read with that connection's token. Cached in `session:schema:<id>` for 5 minutes unless `force` (data source ids are globally unique, so the key has no connection). |
+| `pages/search` | `{ connectionId, dataSourceId, query? }` | `PageOption[]` | Relation picker, with that connection's token. Reads the target's (cached) schema for its title property, then `POST /v1/data_sources/{id}/query` (title `contains`, newest edit first), at most `PAGE_OPTIONS_LIMIT` (25). |
 | `capture/run` | `{ tabId }` | `CaptureResult` | Probe + screenshot of the tab. Restricted pages return `restricted: true`. |
 | `dup/check` | `{ presetId, url }` | `{ matches: DuplicateMatch[] }` | Uses the preset's connection ([workspaces](#workspaces-connections)); unresolved → `no-token` / `edit-preset`. No dedupe property, or one that the live schema no longer has as `url` / `rich_text` / `title` ("Duplicate check is off") → `{ matches: [] }` without a query. Otherwise queries the dedupe property (by its live type) for `urlVariants(url)` — the normalized URL **or** the raw one. |
 | `save/start` | `{ presetId, values, capture, mode }` | `{ jobId }` | The connection comes from the preset. Returns right away. The save keeps running in the background. `mode`: `create` / `update {pageId}` / `duplicate`. |
@@ -79,7 +80,7 @@ Sitecatch can be connected to several Notion workspaces at once, one token each 
 
 - **Connection id.** The Notion workspace id (`bot.workspace_id` from `GET /v1/users/me`, reported for internal connections and personal access tokens alike) when Notion reports one, so a preset synced to another device resolves there once that device connects the same workspace. Otherwise a random UUID. At most one connection per workspace: `conn/add` matches an existing one by workspace id, by identical token, or (for connections migrated from v0.1, whose id is `legacy-<uuid>`) by asking Notion which workspace the legacy token belongs to.
 - **Resolution** (one rule, `src/lib/presets/connection.ts`, used by `dup/check`, the save pipeline, the popup and the editor): `connectionId` connected here → that connection; `connectionId: null` and exactly one connection → the only one; otherwise unresolved → `no-token` with an actionable message ("Connect the “<workspace>” workspace in Sitecatch settings, or pick a workspace for this preset.") and the `edit-preset` action. No connections at all → `no-token` / `open-setup`.
-- **Clients.** `createClientProvider` (`src/background/context.ts`) memoizes one `NotionClient` per connection id + token (each keeps its own rate-limit queue). `requireClient(connectionId)` serves `ds/*`; `requirePresetClient(preset)` serves `dup/check` and the save pipeline. The upload limit comes from the resolved connection's `maxFileUploadBytes`.
+- **Clients.** `createClientProvider` (`src/background/context.ts`) memoizes one `NotionClient` per connection id + token (each keeps its own rate-limit queue). `requireClient(connectionId)` serves `ds/*` and `pages/search`; `requirePresetClient(preset)` serves `dup/check` and the save pipeline. The upload limit comes from the resolved connection's `maxFileUploadBytes`.
 - **Migration from v0.1.** `local:auth` (one token) is copied into `local:connections` the first time connections are read while none exist (also kicked off when the background starts). It is idempotent and does **not** delete `local:auth`, so a downgrade keeps working. Replacing the migrated connection's token keeps `local:auth` in step; removing it clears `local:auth`, so "Remove" really forgets the token.
 
 ## Data flow

@@ -2,15 +2,15 @@ import { Button, EmptyState } from '@/ui/components';
 import { OPTIONS_ROUTES, openOptions } from './nav';
 
 export interface NoSetupProps {
-  hasToken: boolean;
+  hasConnection: boolean;
   hostPermission: boolean;
   /** Called from the click handler; must call `permissions.request` synchronously. */
   onGrant: () => void;
 }
 
 /** Shown until Sitecatch has a token and access to api.notion.com. */
-export function NoSetup({ hasToken, hostPermission, onGrant }: NoSetupProps) {
-  const onlyPermission = hasToken && !hostPermission;
+export function NoSetup({ hasConnection, hostPermission, onGrant }: NoSetupProps) {
+  const onlyPermission = hasConnection && !hostPermission;
   return (
     <EmptyState
       icon="lock"

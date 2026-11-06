@@ -61,6 +61,8 @@ export function emptyFormValue(type: WritablePropertyType): FormValue {
       return { kind: 'date', value: null };
     case 'files':
       return { kind: 'files', value: [] };
+    case 'relation':
+      return { kind: 'relation', value: [] };
   }
 }
 
@@ -76,6 +78,7 @@ export function isEmptyValue(v: FormValue | undefined): boolean {
       return v.value === null;
     case 'multi_select':
     case 'files':
+    case 'relation':
       return v.value.length === 0;
     case 'checkbox':
       return false;

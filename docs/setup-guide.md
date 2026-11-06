@@ -111,6 +111,8 @@ Alternative, from the Developer portal: open the Sitecatch connection → **Cont
 <!-- SCREENSHOT: setup-10 -->
 ![Developer portal: Content access tab → Edit access](../public/setup/setup-10.png)
 
+**Relation properties:** if a database has a relation to another database (e.g. Resources → Projects), share **both**. The picker searches the related database with this connection's token, so if only the first one is shared it shows that Sitecatch can't see the linked database instead of its pages.
+
 Sharing a page also shares everything inside it. Sharing only the databases is the tighter option. To stop sharing later: ••• → Connections → Sitecatch → **Disconnect**.
 
 ## 5. Check your databases
@@ -169,6 +171,8 @@ A preset says *which database* and *where each property's value comes from*. Exa
 5. **Page cover**: *Open Graph image* (or *Screenshot*). **Page icon**: *Site favicon*.
 6. **Duplicate detection**: compare with **URL** (preselected).
 7. **Save preset**.
+
+**Relation properties** (e.g. Project → a Projects database) can be *Ask in popup* (a searchable page picker in the popup) or a *Fixed value* (pages picked in the editor). Both databases must be in the same workspace and visible to its token: with an internal connection, share the related database too, otherwise the picker says it can't see the linked database.
 
 Try it: open any article, click the Sitecatch toolbar button, check the pre-filled form, pick a Type, add Tags, click **Save**. When it's done, click **Open in Notion**.
 

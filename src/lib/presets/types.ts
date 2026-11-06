@@ -16,13 +16,19 @@ export type FileRef =
   /** An external URL (favicon, og:image). */
   | { kind: 'external'; url: string; name?: string };
 
+/** A linked page in a relation value. `title` is a display snapshot; only `id` is written. */
+export interface RelationRef {
+  id: string;
+  title: string;
+}
+
 /**
  * A value the user can see/edit in the popup form, tagged by input kind.
  * Mapping from Notion property type:
  *   title, rich_text, url, email, phone_number → 'text'
  *   number → 'number'; checkbox → 'checkbox'
  *   select, status → 'select' (option *name*); multi_select → 'multi_select' (names)
- *   date → 'date'; files → 'files'
+ *   date → 'date'; files → 'files'; relation → 'relation'
  */
 export type FormValue =
   | { kind: 'text'; value: string }
@@ -31,7 +37,8 @@ export type FormValue =
   | { kind: 'select'; value: string | null }
   | { kind: 'multi_select'; value: string[] }
   | { kind: 'date'; value: { start: string; end?: string } | null }
-  | { kind: 'files'; value: FileRef[] };
+  | { kind: 'files'; value: FileRef[] }
+  | { kind: 'relation'; value: RelationRef[] };
 
 export type FormValueKind = FormValue['kind'];
 

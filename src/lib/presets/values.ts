@@ -19,6 +19,8 @@ export function emptyFormValue(propertyType: WritablePropertyType): FormValue {
       return { kind: 'date', value: null };
     case 'files':
       return { kind: 'files', value: [] };
+    case 'relation':
+      return { kind: 'relation', value: [] };
   }
 }
 
@@ -38,6 +40,7 @@ export function isEmptyFormValue(value: FormValue): boolean {
     case 'date':
       return value.value === null || value.value.start.trim() === '';
     case 'files':
+    case 'relation':
       return value.value.length === 0;
   }
 }

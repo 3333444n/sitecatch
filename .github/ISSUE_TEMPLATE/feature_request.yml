@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest an idea or an improvement for Sitecatch.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/3333444n/sitecatch/blob/main/docs/roadmap.md) and existing issues first.
+        Sitecatch has no backend, no analytics and minimal permissions; ideas that need them are unlikely to land.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you'd like it to work. Mention any new permission, Notion API endpoint or property type it would need.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I'd like to work on this myself.

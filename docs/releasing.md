@@ -26,6 +26,7 @@ Don't `source` `.env.local` in a shell: a typo can make the shell print the secr
 
 1. **Bump `version`** in `package.json` (semver). AMO rejects a version it has already signed, so every signed build needs a new version.
 2. **Update `CHANGELOG.md`**: move the `Unreleased` entries under the new version and date, and add its compare/tag link.
+   - **Check `public/THIRD_PARTY_NOTICES.txt`**: it lists the runtime dependencies bundled into the extension (preact, @preact/signals and @preact/signals-core, @wxt-dev/browser, @wxt-dev/storage, superlock; all MIT) with their licenses. Update it whenever a bundled runtime dependency is added, removed or changes license.
 3. **Sign:** `pnpm sign:firefox`. It validates the keys, builds with `pnpm build:firefox`, then runs `web-ext sign -s .output/firefox-mv3 --channel=unlisted`. The signed `.xpi` lands in `web-ext-artifacts/` (git-ignored). Use `pnpm sign:firefox --dry-run` to check the keys and the build without uploading anything.
 4. **Install** the `.xpi`: in Firefox open `about:addons` → gear icon → **Install Add-on From File…** → pick the file from `web-ext-artifacts/`. Installing a higher version over an existing install updates it in place and keeps your data.
 5. Commit the version bump and changelog, tag `vX.Y.Z`, and attach the `.xpi` to the GitHub release if you share it.

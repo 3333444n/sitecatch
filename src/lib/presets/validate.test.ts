@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { allResourcesMappings, makePreset, resourcesChangedSchema, resourcesSchema } from './testing';
-import type { PresetIssue } from './types';
+import type { Mapping, PresetIssue } from './types';
 import { isBlocking, refreshPropertyNames, validatePreset } from './validate';
 
 const preset = makePreset({
@@ -89,5 +89,49 @@ describe('validatePreset', () => {
     const fixed = refreshPropertyNames(preset, resourcesChangedSchema);
     expect(fixed.mappings[0]?.propertyName).toBe('Title');
     expect(validatePreset(fixed, resourcesChangedSchema).some((i) => i.kind === 'renamed')).toBe(false);
+  });
+});
+
+describe('relation mappings', () => {
+  const relMapping = (source: Mapping['source']): Mapping => ({
+    propertyId: 'rel',
+    propertyName: 'Related',
+    propertyType: 'relation',
+    source,
+    editableInPopup: false,
+  });
+  const kineo = { kind: 'relation' as const, value: [{ id: 'page-kineo', title: 'Kineo Website' }] };
+
+  it('accepts static and ask relation values on a relation property', () => {
+    expect(validatePreset(makePreset({ mappings: [relMapping({ kind: 'static', value: kineo })] }), resourcesSchema)).toEqual([]);
+    expect(
+      validatePreset(makePreset({ mappings: [relMapping({ kind: 'ask', default: kineo, required: true })] }), resourcesSchema),
+    ).toEqual([]);
+  });
+
+  it('blocks when the relation property changed type', () => {
+    const schema = {
+      ...resourcesSchema,
+      properties: { ...resourcesSchema.properties, rel: { id: 'rel', name: 'Related', type: 'rich_text' as const } },
+    };
+    const issues = validatePreset(makePreset({ mappings: [relMapping({ kind: 'static', value: kineo })] }), schema);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toMatchObject({ propertyId: 'rel', kind: 'type-changed', blocking: true });
+  });
+
+  it('blocks a property that became a relation (no extractor can fill it)', () => {
+    const schema = {
+      ...resourcesSchema,
+      properties: { ...resourcesSchema.properties, notes: { id: 'notes', name: 'Notes', type: 'relation' as const } },
+    };
+    const mapping: Mapping = {
+      propertyId: 'notes',
+      propertyName: 'Notes',
+      propertyType: 'rich_text',
+      source: { kind: 'extractor', extractor: 'ogDescription' },
+      editableInPopup: false,
+    };
+    const issues = validatePreset(makePreset({ mappings: [mapping] }), schema);
+    expect(issues[0]).toMatchObject({ propertyId: 'notes', kind: 'type-changed', blocking: true });
   });
 });

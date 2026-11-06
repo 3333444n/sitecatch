@@ -40,6 +40,7 @@ A database with one data source shows up as one entry in the list. A database wi
 | List data sources the token can see | `POST /v1/search` with `{"filter": {"property": "object", "value": "data_source"}, "query"?: "…"}` (paginated) | `ds/list` |
 | Read a data source schema | `GET /v1/data_sources/{id}` | `ds/schema` |
 | Find duplicates by URL | `POST /v1/data_sources/{id}/query` with a filter on the dedupe property | `dup/check` |
+| Search pages for a relation picker | `POST /v1/data_sources/{targetId}/query` (title `contains` filter when there is a query) | `pages/search` |
 | Create a file upload | `POST /v1/file_uploads` with `{"filename": "…jpg", "content_type": "image/jpeg"}` | `save/start` |
 | Send the file bytes | `POST /v1/file_uploads/{id}/send` (`multipart/form-data`, field `file`) | `save/start` |
 | Create the page | `POST /v1/pages` | `save/start` (mode `create` / `duplicate`) |
@@ -54,6 +55,14 @@ Notes:
 - Page `properties` can be keyed by property **name or id**. Sitecatch always keys by **id**, so renaming a property doesn't break a preset ([ADR 0006](./decisions/0006-map-properties-by-id.md)).
 - Search returns only objects the token can see. For an internal connection, an empty result almost always means nothing has been shared yet; for a personal access token, it usually means the wrong workspace (see [setup-guide.md](./setup-guide.md#cant-see-your-database)).
 - Duplicate detection filters `POST …/query` on the dedupe property by its type: `{"property": id, "url": {"equals": …}}` for `url` properties (`rich_text` / `title` use the same shape with their own key), OR-ing the normalized and the raw URL. The `url` filter's exact match was verified against a real workspace (manual E2E, 2026-10-18), including a `?utm_source=…` variant.
+
+## Relations
+
+([Property object → Relation](https://developers.notion.com/reference/property-object), [Page property values → Relation](https://developers.notion.com/reference/page-property-values), [Request limits](https://developers.notion.com/reference/request-limits))
+
+- **Schema.** `GET /v1/data_sources/{id}` returns a relation property as `{"type": "relation", "relation": {"data_source_id": "…", "database_id": "…", "type": "single_property" | "dual_property", …}}`. Since `2025-09-03` the target is `data_source_id` (`database_id` stays for backwards compatibility). One-way (`single_property`) and two-way (`dual_property`, which adds `synced_property_id` / `synced_property_name`) relations both carry it. The client maps it to `PropertySchema.relation.dataSourceId`; a relation without one has no `relation` field and the picker says it can't search.
+- **Search (`pages/search`).** The background loads the target's schema (same 5-minute session cache as `ds/schema`) to find its title property, then sends `POST /v1/data_sources/{targetId}/query` with `{"sorts": [{"timestamp": "last_edited_time", "direction": "descending"}], "page_size": 25, "result_type": "page"}`, plus `"filter": {"property": <title property id>, "title": {"contains": "<query>"}}` when the trimmed query is non-empty. Results become `PageOption { id, title ("Untitled" if empty), icon?, url? }`; trashed pages are skipped. At most `PAGE_OPTIONS_LIMIT` (25) results, no pagination: the user narrows the search instead. The target must be visible to the token (internal connection: shared too), otherwise the picker shows the `db-not-shared` message.
+- **Write.** `{"relation": [{"id": "…"}, …]}`. A write **replaces** the whole relation. At most **100** related pages per property per request; Sitecatch dedupes ids and drops the rest with a warning.
 
 ## File upload flow (screenshots)
 
@@ -98,6 +107,7 @@ These are the shapes the property builders (`src/lib/properties/`) send, keyed b
 | `date` | `{"date": {"start": "2026-10-18"}}`, optionally with `"end"` |
 | `files` (uploaded) | `{"files": [{"name": "screenshot.jpg", "type": "file_upload", "file_upload": {"id": "…"}}]}` |
 | `files` (external) | `{"files": [{"name": "favicon.png", "type": "external", "external": {"url": "https://…"}}]}` |
+| `relation` | `{"relation": [{"id": "<page id>"}, …]}` (max 100 per request, see [Relations](#relations)) |
 
 Page-level fields:
 
