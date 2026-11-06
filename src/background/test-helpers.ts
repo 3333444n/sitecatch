@@ -3,7 +3,7 @@ import { vi } from 'vitest';
 import { ok } from '@/lib/errors';
 import type { NotionClient } from '@/lib/notion/client';
 import type { DataSourceSchema } from '@/lib/notion/types';
-import type { AuthState } from '@/lib/storage/items';
+import type { AuthState, Connection } from '@/lib/storage/items';
 import type { Badge } from './badge';
 import type { BackgroundDeps } from './context';
 
@@ -11,6 +11,20 @@ export const TOKEN = 'ntn_testtoken0123456789abcdef';
 
 export function makeAuth(overrides: Partial<AuthState> = {}): AuthState {
   return {
+    token: TOKEN,
+    tokenKind: 'connection',
+    botName: 'Sitecatch',
+    workspaceName: 'My workspace',
+    validatedAt: '2026-10-18T11:00:00.000Z',
+    ...overrides,
+  };
+}
+
+export const CONN_ID = 'ws-1';
+
+export function makeConnection(overrides: Partial<Connection> = {}): Connection {
+  return {
+    id: CONN_ID,
     token: TOKEN,
     tokenKind: 'connection',
     botName: 'Sitecatch',

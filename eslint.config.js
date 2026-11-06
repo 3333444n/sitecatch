@@ -31,6 +31,18 @@ export default tseslint.config(
     },
   },
   {
+    // The deprecated v0.1 `local:auth` item is still defined, migrated and
+    // cleared here (multiple workspaces, ADR 0010). Everywhere else it's an error.
+    files: [
+      'src/lib/storage/items.ts',
+      'src/background/connections.ts',
+      'src/background/handlers/connections.ts',
+      'src/background/**/*.test.ts',
+      'src/background/test-helpers.ts',
+    ],
+    rules: { '@typescript-eslint/no-deprecated': 'off' },
+  },
+  {
     files: ['**/*.js', '**/*.mjs'],
     extends: [tseslint.configs.disableTypeChecked],
     languageOptions: { globals: { ...globals.node } },

@@ -1,7 +1,7 @@
 /**
  * The background save pipeline (see docs/architecture.md#save-pipeline).
  *
- *   1. auth + preset → fresh schema (forced) → validatePreset (blocking → preset-invalid)
+ *   1. preset → its connection (client) → fresh schema (forced) → validatePreset (blocking → preset-invalid)
  *   2. normalize the URL written to the dedupe property
  *   3. screenshot needed? → upload once (recompress to fit the workspace limit);
  *      too large → continue without it (warning)
@@ -28,7 +28,7 @@ import { buildPageExtras, buildProperties, DEFAULT_SCREENSHOT_NAME } from '@/lib
 import type { FormValues, Preset } from '@/lib/presets/types';
 import { isDedupeCapable, validatePreset } from '@/lib/presets/validate';
 import type { CaptureResult } from '@/lib/extract/types';
-import type { AuthState, HistoryEntry } from '@/lib/storage/items';
+import type { Connection, HistoryEntry } from '@/lib/storage/items';
 import { normalizeUrl, urlVariants } from '@/lib/url/normalize';
 import type { Badge } from './badge';
 import type { AuthedClient } from './context';
@@ -51,7 +51,8 @@ export interface SaveRequest {
 }
 
 export interface SavePipelineDeps {
-  requireClient: () => Promise<Result<AuthedClient>>;
+  /** The preset's resolved connection + a client (see `resolvePresetConnection`). */
+  requireClient: (preset: Preset) => Promise<Result<AuthedClient>>;
   loadPreset: (id: string) => Promise<Result<Preset>>;
   /** Fresh schema (bypassing the cache, refreshing it). */
   fetchSchema: (client: NotionClient, dataSourceId: string) => Promise<Result<DataSourceSchema>>;
@@ -130,7 +131,7 @@ interface UploadOutcome {
 
 async function uploadScreenshot(
   client: NotionClient,
-  auth: AuthState,
+  connection: Connection,
   capture: CaptureResult,
   deps: SavePipelineDeps,
 ): Promise<UploadOutcome> {
@@ -139,7 +140,7 @@ async function uploadScreenshot(
   if (!dataUrl) {
     return { warnings: ['Saved without screenshot: there was no screenshot to attach.'] };
   }
-  const limit = auth.maxFileUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
+  const limit = connection.maxFileUploadBytes ?? DEFAULT_MAX_UPLOAD_BYTES;
   let blob = dataUrlToBlob(dataUrl);
   if (blob === null) {
     return { warnings: ['Saved without screenshot: the screenshot couldn’t be read.'] };
@@ -218,14 +219,14 @@ async function save(
   startedAt: Date,
   deps: SavePipelineDeps,
 ): Promise<Result<SaveSuccess> & { preset?: Preset; title?: string }> {
-  // 1. Auth, preset, fresh schema, validation.
-  const authed = await deps.requireClient();
-  if (!authed.ok) return authed;
-  const { auth, client } = authed.data;
-
+  // 1. Preset, its connection, fresh schema, validation.
   const presetRes = await deps.loadPreset(request.presetId);
   if (!presetRes.ok) return presetRes;
   const preset = presetRes.data;
+
+  const authed = await deps.requireClient(preset);
+  if (!authed.ok) return authed;
+  const { connection, client } = authed.data;
 
   const schemaRes = await deps.fetchSchema(client, preset.dataSourceId);
   if (!schemaRes.ok) return schemaRes;
@@ -242,7 +243,7 @@ async function save(
   let uploadId: string | undefined;
   if (needsScreenshot(preset, values)) {
     await deps.updateJob(jobId, { status: 'uploading' });
-    const upload = await uploadScreenshot(client, auth, request.capture, deps);
+    const upload = await uploadScreenshot(client, connection, request.capture, deps);
     if (upload.error) return err(upload.error);
     warnings.push(...upload.warnings);
     uploadId = upload.uploadId;

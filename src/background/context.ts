@@ -9,8 +9,10 @@ import { createBrowserCaptureDeps, type CaptureDeps, type CaptureTab } from '@/l
 import { compressScreenshot, type CompressedImage, type CompressOptions } from '@/lib/capture/image';
 import { err, ok, type Result } from '@/lib/errors';
 import { createNotionClient, type NotionClient } from '@/lib/notion/client';
-import { authItem, type AuthState } from '@/lib/storage/items';
+import type { Preset } from '@/lib/presets/types';
+import type { Connection } from '@/lib/storage/items';
 import { createBadge, type Badge } from './badge';
+import { loadConnections, resolvePresetConnection } from './connections';
 
 export const NOTION_ORIGINS = ['https://api.notion.com/*'];
 
@@ -74,29 +76,68 @@ export function noTokenError() {
   });
 }
 
+export function connectionGoneError() {
+  return err(
+    'no-token',
+    'That Notion workspace isn’t connected anymore. Add it again in Sitecatch settings → Workspaces.',
+    { action: 'open-setup', detail: 'unknown connectionId' },
+  );
+}
+
 export interface AuthedClient {
-  auth: AuthState;
+  connection: Connection;
   client: NotionClient;
 }
 
-/** Builds `requireClient`, memoizing one client per token (keeps its rate-limit queue). */
+/**
+ * Builds `requireClient(connectionId)` / `requirePresetClient(preset)`,
+ * memoizing one client per connection (and token), so each keeps its own
+ * rate-limit queue.
+ */
 export function createClientProvider(deps: Pick<BackgroundDeps, 'createClient' | 'hasHostPermission'>) {
-  let memo: { token: string; client: NotionClient } | null = null;
+  const memo = new Map<string, { token: string; client: NotionClient }>();
 
-  function clientFor(token: string): NotionClient {
-    if (memo?.token !== token) memo = { token, client: deps.createClient(token) };
-    return memo.client;
+  function clientFor(connection: Pick<Connection, 'id' | 'token'>): NotionClient {
+    const hit = memo.get(connection.id);
+    if (hit?.token === connection.token) return hit.client;
+    const client = deps.createClient(connection.token);
+    memo.set(connection.id, { token: connection.token, client });
+    return client;
   }
 
-  /** Stored auth + a client, or `no-token` / `no-host-permission`. */
-  async function requireClient(): Promise<Result<AuthedClient>> {
-    const auth = await authItem.getValue();
-    if (!auth?.token) return noTokenError();
+  async function authed(connection: Connection): Promise<Result<AuthedClient>> {
     if (!(await deps.hasHostPermission())) return noHostPermissionError();
-    return ok({ auth, client: clientFor(auth.token) });
+    return ok({ connection, client: clientFor(connection) });
   }
 
-  return { requireClient, clientFor, reset: () => (memo = null) };
+  /** The stored connection + a client, or `no-token` / `no-host-permission`. */
+  async function requireClient(connectionId: string): Promise<Result<AuthedClient>> {
+    const connections = await loadConnections();
+    if (connections.length === 0) return noTokenError();
+    const connection = connections.find((c) => c.id === connectionId);
+    if (!connection) return connectionGoneError();
+    return authed(connection);
+  }
+
+  /** The connection a preset resolves to (see `resolvePresetConnection`) + a client. */
+  async function requirePresetClient(
+    preset: Pick<Preset, 'name' | 'connectionId' | 'workspaceName'>,
+  ): Promise<Result<AuthedClient>> {
+    const resolved = resolvePresetConnection(preset, await loadConnections());
+    if (!resolved.ok) return resolved;
+    return authed(resolved.data);
+  }
+
+  return {
+    requireClient,
+    requirePresetClient,
+    clientFor,
+    /** Forget memoized clients (one connection, or all). */
+    reset: (connectionId?: string) => {
+      if (connectionId === undefined) memo.clear();
+      else memo.delete(connectionId);
+    },
+  };
 }
 
 export type ClientProvider = ReturnType<typeof createClientProvider>;

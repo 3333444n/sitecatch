@@ -5,8 +5,8 @@ import type { NotionClient } from '@/lib/notion/client';
 import type { NotionCreatePageBody, NotionUpdatePageBody } from '@/lib/notion/types';
 import { allResourcesMappings, makeCapture, makePreset, resourcesSchema } from '@/lib/presets/testing';
 import type { FormValues, Preset } from '@/lib/presets/types';
-import type { AuthState, HistoryEntry } from '@/lib/storage/items';
-import { fakeBadge, fakeClient, makeAuth, NOW } from './test-helpers';
+import type { Connection, HistoryEntry } from '@/lib/storage/items';
+import { fakeBadge, fakeClient, makeConnection, NOW } from './test-helpers';
 import { normalizeDedupeValue, runSavePipeline, type SavePipelineDeps, type SaveRequest } from './save-pipeline';
 
 const PRESET_BASE: Preset = makePreset({
@@ -20,7 +20,7 @@ const VALUES: FormValues = {
   notes: { kind: 'text', value: 'A description' },
 };
 
-function setup(opts: { preset?: Preset; auth?: AuthState; client?: ReturnType<typeof fakeClient> } = {}) {
+function setup(opts: { preset?: Preset; connection?: Connection; client?: ReturnType<typeof fakeClient> } = {}) {
   const fc = opts.client ?? fakeClient(resourcesSchema);
   const preset = opts.preset ?? PRESET_BASE;
   const jobs: Partial<JobState>[] = [];
@@ -28,7 +28,7 @@ function setup(opts: { preset?: Preset; auth?: AuthState; client?: ReturnType<ty
   const lastPreset: string[] = [];
   const { badge, calls: badgeCalls } = fakeBadge();
   const deps: SavePipelineDeps = {
-    requireClient: vi.fn(() => Promise.resolve(ok({ auth: opts.auth ?? makeAuth(), client: fc.client }))),
+    requireClient: vi.fn(() => Promise.resolve(ok({ connection: opts.connection ?? makeConnection(), client: fc.client }))),
     loadPreset: vi.fn((id: string): Promise<Result<Preset>> =>
       Promise.resolve(id === preset.id ? ok(preset) : err('not-found', 'gone')),
     ),
@@ -198,7 +198,7 @@ describe('runSavePipeline — screenshot', () => {
   });
 
   it('passes the workspace limit to the upload and recompresses when the screenshot is too big', async () => {
-    const t = setup({ preset: shotPreset, auth: makeAuth({ maxFileUploadBytes: 2 }) });
+    const t = setup({ preset: shotPreset, connection: makeConnection({ maxFileUploadBytes: 2 }) });
     const small = new Blob([new Uint8Array([1])], { type: 'image/jpeg' });
     t.deps.compress = vi.fn(() =>
       Promise.resolve(ok({ blob: small, dataUrl: 'data:image/jpeg;base64,AQ==', width: 1, height: 1, bytes: 1, reducedToFit: true })),
@@ -235,7 +235,7 @@ describe('runSavePipeline — screenshot', () => {
   });
 
   it('continues without the screenshot when recompression cannot fit it', async () => {
-    const t = setup({ preset: shotPreset, auth: makeAuth({ maxFileUploadBytes: 1 }) });
+    const t = setup({ preset: shotPreset, connection: makeConnection({ maxFileUploadBytes: 1 }) });
     t.deps.compress = vi.fn(() => Promise.resolve(err('upload-too-large', 'too big')));
     const res = await runSavePipeline('job-1', request(), t.deps);
     expect(res.ok).toBe(true);

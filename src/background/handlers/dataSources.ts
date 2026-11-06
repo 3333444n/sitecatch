@@ -6,7 +6,10 @@ import { getSchema } from '../schema-cache';
 
 export function createDataSourceHandlers(deps: BackgroundDeps, clients: ClientProvider) {
   const list: Handler<'ds/list'> = async (request) => {
-    const authed = await clients.requireClient();
+    if (typeof request.connectionId !== 'string' || request.connectionId === '') {
+      return err('validation', 'Pick a workspace first.', { detail: 'missing connectionId' });
+    }
+    const authed = await clients.requireClient(request.connectionId);
     if (!authed.ok) return authed;
     const query = typeof request.query === 'string' ? request.query.trim() : '';
     return authed.data.client.searchDataSources(query || undefined);
@@ -16,7 +19,10 @@ export function createDataSourceHandlers(deps: BackgroundDeps, clients: ClientPr
     if (typeof request.dataSourceId !== 'string' || request.dataSourceId === '') {
       return err('validation', 'No database was selected.', { detail: 'missing dataSourceId' });
     }
-    const authed = await clients.requireClient();
+    if (typeof request.connectionId !== 'string' || request.connectionId === '') {
+      return err('validation', 'Pick a workspace first.', { detail: 'missing connectionId' });
+    }
+    const authed = await clients.requireClient(request.connectionId);
     if (!authed.ok) return authed;
     return getSchema(authed.data.client, request.dataSourceId, {
       force: request.force === true,

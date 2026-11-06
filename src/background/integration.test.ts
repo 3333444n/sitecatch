@@ -13,7 +13,7 @@ import { createNotionClient } from '@/lib/notion/client';
 import { jsonResponse } from '@/lib/notion/test-helpers';
 import { savePreset } from '@/lib/presets/storage';
 import { makeCapture, makePreset } from '@/lib/presets/testing';
-import { authItem, historyItem } from '@/lib/storage/items';
+import { connectionsItem, historyItem } from '@/lib/storage/items';
 import { createHandlers } from './handlers';
 import { registerRouter } from './router';
 import { fakeClient, makeDeps, TOKEN } from './test-helpers';
@@ -62,7 +62,7 @@ function fakeNotion() {
           id: 'bot-1',
           name: 'Sitecatch',
           type: 'bot',
-          bot: { workspace_name: 'My workspace', workspace_limits: { max_file_upload_size_in_bytes: 5242880 } },
+          bot: { workspace_name: 'My workspace', workspace_id: 'ws-int', workspace_limits: { max_file_upload_size_in_bytes: 5242880 } },
         }),
       );
     }
@@ -165,26 +165,30 @@ describe('background integration (router + handlers + Notion client)', () => {
     const { notion, detached } = setup();
 
     // 1. Validate the token.
-    const validated = await send({ type: 'auth/validate', token: TOKEN, tokenKind: 'personal' });
-    expect(validated).toEqual({
+    const validated = await send({ type: 'conn/add', token: TOKEN, tokenKind: 'personal' });
+    expect(validated).toMatchObject({
       ok: true,
       data: { botName: 'Sitecatch', workspaceName: 'My workspace', maxFileUploadBytes: 5242880 },
     });
-    expect(await authItem.getValue()).toMatchObject({ token: TOKEN, tokenKind: 'personal' });
+    if (!validated.ok) return;
+    const connectionId = validated.data.id;
+    expect(await connectionsItem.getValue()).toMatchObject([{ id: connectionId, token: TOKEN, tokenKind: 'personal' }]);
     expect(JSON.stringify(validated)).not.toContain(TOKEN);
 
     // 2. List data sources.
-    const list = await send({ type: 'ds/list' });
+    const list = await send({ type: 'ds/list', connectionId });
     expect(list).toMatchObject({ ok: true, data: [{ id: DS_ID, name: 'Resources', databaseId: 'db-1' }] });
 
     // 3. Read the schema.
-    const schema = await send({ type: 'ds/schema', dataSourceId: DS_ID });
+    const schema = await send({ type: 'ds/schema', connectionId, dataSourceId: DS_ID });
     expect(schema.ok && Object.keys(schema.data.properties).sort()).toEqual(['p%3Aurl', 'shots', 'title']);
 
     // 4. Save a preset (create) with the screenshot attached to a files property.
     await savePreset(
       makePreset({
         dataSourceId: DS_ID,
+        connectionId,
+        workspaceName: 'My workspace',
         mappings: [
           { propertyId: 'title', propertyName: 'Name', propertyType: 'title', source: { kind: 'extractor', extractor: 'ogTitle', fallbacks: ['title'] }, editableInPopup: true },
           { propertyId: 'p%3Aurl', propertyName: 'URL', propertyType: 'url', source: { kind: 'extractor', extractor: 'url' }, editableInPopup: false },
@@ -240,7 +244,7 @@ describe('background integration (router + handlers + Notion client)', () => {
     setup();
     const listener = vi.fn();
     const result = await fakeBrowser.runtime.onMessage.trigger(
-      { type: 'auth/status' },
+      { type: 'conn/list' },
       { id: browser.runtime.id, url: 'https://evil.example/', tab: { id: 1 } as MessageSender['tab'] },
       listener,
     );
