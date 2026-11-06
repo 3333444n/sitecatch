@@ -62,7 +62,8 @@ describe('compat matrix', () => {
     for (const t of WRITABLE_PROPERTY_TYPES) expect(supportsStatic(t)).toBe(true);
     expect(supportsAsk('files')).toBe(false);
     expect(supportsAsk('status')).toBe(true);
-    expect(supportsAsk('relation')).toBe(false);
+    expect(supportsAsk('relation')).toBe(true);
+    expect(formValueKindFor('relation')).toBe('relation');
     expect(supportsStatic('rollup')).toBe(false);
   });
 

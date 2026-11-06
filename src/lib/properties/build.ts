@@ -25,6 +25,7 @@ import {
   FILE_NAME_MAX,
   MULTI_SELECT_MAX,
   PHONE_MAX,
+  RELATION_MAX,
   sanitizeOptionName,
   truncate,
   URL_MAX,
@@ -204,6 +205,15 @@ function buildValue(
       if (value.kind !== 'files') return mismatch();
       const files = fileValues(value.value, prop, ctx, warnings);
       return files.length > 0 ? { files } : null;
+    }
+    case 'relation': {
+      if (value.kind !== 'relation') return mismatch();
+      const ids = [...new Set(value.value.map((r) => r.id.trim()).filter(Boolean))];
+      if (ids.length > RELATION_MAX) {
+        warnings.push(`“${prop.name}” had more than ${RELATION_MAX} linked pages; only the first ${RELATION_MAX} were saved.`);
+      }
+      const limited = ids.slice(0, RELATION_MAX);
+      return limited.length > 0 ? { relation: limited.map((id) => ({ id })) } : null;
     }
     default:
       return null;

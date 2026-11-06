@@ -7,7 +7,7 @@ import type { ExtractorId } from '@/lib/extract/types';
 import type { WritablePropertyType } from '@/lib/notion/types';
 import { WRITABLE_PROPERTY_TYPES } from '@/lib/notion/types';
 import { EXTRACTOR_OUTPUT } from './compat';
-import type { FileRef, FormValue, Mapping, Preset, ValueSource } from './types';
+import type { FileRef, FormValue, Mapping, Preset, RelationRef, ValueSource } from './types';
 
 type Obj = Record<string, unknown>;
 
@@ -38,6 +38,10 @@ export function isFileRef(v: unknown): v is FileRef {
   return v.kind === 'external' && isStr(v.url) && isOptional(v.name, isStr);
 }
 
+export function isRelationRef(v: unknown): v is RelationRef {
+  return isObj(v) && isStr(v.id) && v.id !== '' && isStr(v.title);
+}
+
 export function isFormValue(v: unknown): v is FormValue {
   if (!isObj(v)) return false;
   const value = v.value;
@@ -59,6 +63,8 @@ export function isFormValue(v: unknown): v is FormValue {
       );
     case 'files':
       return Array.isArray(value) && value.every(isFileRef);
+    case 'relation':
+      return Array.isArray(value) && value.every(isRelationRef);
     default:
       return false;
   }

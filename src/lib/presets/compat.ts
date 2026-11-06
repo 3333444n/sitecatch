@@ -73,5 +73,7 @@ export function formValueKindFor(propertyType: WritablePropertyType): FormValueK
       return 'date';
     case 'files':
       return 'files';
+    case 'relation':
+      return 'relation';
   }
 }
