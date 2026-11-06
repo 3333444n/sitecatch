@@ -10,7 +10,7 @@ From `wxt.config.ts`:
 | --- | --- | --- |
 | `activeTab` | Temporary access to **the tab you're on, only after you click the Sitecatch button**. Lets Sitecatch read that page's title/metadata and take a screenshot of it. Sitecatch never gets access to other tabs or to pages you don't click on. | Each time you open the popup. |
 | `scripting` | Runs a small read-only function in that tab (via `scripting.executeScript`) to collect title, URL, meta tags, links, selected text and fonts. It changes nothing on the page. | Each capture. |
-| `storage` | Saves your token and settings on this device, your presets (synced), and temporary save status. | Always. |
+| `storage` | Saves your tokens (one per connected workspace) and settings on this device, your presets (synced), and temporary save status. | Always. |
 | Host: `https://api.notion.com/*` | Calls the Notion API to list your databases, read their properties, upload the screenshot and create pages. **This is the only host Sitecatch talks to.** | Setup and every save. |
 
 Sitecatch does **not** request `<all_urls>`, `tabs`, `cookies`, `history`, `webRequest`, or access to `notion.so`. It doesn't use your Notion browser session.
@@ -46,7 +46,7 @@ flowchart LR
 
 | Data | Where it goes | When |
 | --- | --- | --- |
-| Token | `api.notion.com` (Authorization header) | Every API call |
+| Token (of the workspace the preset or request belongs to) | `api.notion.com` (Authorization header) | Every API call |
 | Page URL | `api.notion.com` | Duplicate check (popup open) and save |
 | Title, descriptions, selection, fonts, favicon/og:image URLs, values you typed | `api.notion.com` → your database | Save |
 | Screenshot (JPEG) | `api.notion.com` file upload → your page | Save, if the preset uses a screenshot |
