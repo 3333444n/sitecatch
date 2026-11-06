@@ -11,7 +11,12 @@
 import type { Browser } from 'wxt/browser';
 import type { AppError, Result } from '@/lib/errors';
 import type { CaptureResult } from '@/lib/extract/types';
-import type { DataSourceSchema, DataSourceSummary, DuplicateMatch } from '@/lib/notion/types';
+import type {
+  DataSourceSchema,
+  DataSourceSummary,
+  DuplicateMatch,
+  PageOption,
+} from '@/lib/notion/types';
 import type { FormValues } from '@/lib/presets/types';
 import type { Connection, TokenKind } from '@/lib/storage/items';
 
@@ -47,6 +52,9 @@ export interface JobState {
 /** A connection as the UI sees it — everything except the token. */
 export type ConnectionSummary = Omit<Connection, 'token'>;
 
+/** Max results returned by 'pages/search'. */
+export const PAGE_OPTIONS_LIMIT = 25;
+
 /** Params placeholder for requests that take no arguments. */
 export type NoParams = object;
 
@@ -79,6 +87,14 @@ export interface RequestMap {
   'ds/schema': {
     params: { connectionId: string; dataSourceId: string; force?: boolean };
     response: DataSourceSchema;
+  };
+  /**
+   * Pages of a relation's target data source for the picker, filtered by title
+   * (`query` empty = most recently edited first). At most `PAGE_OPTIONS_LIMIT`.
+   */
+  'pages/search': {
+    params: { connectionId: string; dataSourceId: string; query?: string };
+    response: PageOption[];
   };
   /** Probe + screenshot the given tab. */
   'capture/run': {
@@ -131,6 +147,7 @@ const REQUEST_TYPES: Record<RequestType, true> = {
   'conn/remove': true,
   'ds/list': true,
   'ds/schema': true,
+  'pages/search': true,
   'capture/run': true,
   'dup/check': true,
   'save/start': true,
