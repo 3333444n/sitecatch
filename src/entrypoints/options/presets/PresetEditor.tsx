@@ -38,7 +38,6 @@ export interface PresetEditorProps {
 
 const READ_ONLY_REASON: Record<string, string> = {
   people: 'People can’t be set by Sitecatch',
-  relation: 'Relations aren’t supported yet',
   formula: 'Computed by Notion',
   rollup: 'Computed by Notion',
   created_time: 'Set by Notion',

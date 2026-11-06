@@ -157,7 +157,7 @@ describe('PropertyInput dispatch', () => {
     expect(screen.queryByRole('button')).toBeNull();
   });
 
-  it.each(['people', 'relation', 'formula', 'unsupported'] as const)('%s renders a "not editable" note', (type) => {
+  it.each(['people', 'formula', 'unsupported'] as const)('%s renders a "not editable" note', (type) => {
     render(<PropertyInput property={prop(type)} value={{ kind: 'text', value: '' }} onChange={vi.fn()} />);
     expect(screen.getByRole('group', { name: `My ${type}` }).textContent).toMatch(/can’t be edited/);
     expect(screen.queryByRole('textbox')).toBeNull();

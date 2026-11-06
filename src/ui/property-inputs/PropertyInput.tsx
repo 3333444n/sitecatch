@@ -1,6 +1,6 @@
 import type { ComponentChildren } from 'preact';
 import type { NotionPropertyType, PropertySchema } from '@/lib/notion/types';
-import type { FileRef, FormValue } from '@/lib/presets/types';
+import type { FileRef, FormValue, RelationRef } from '@/lib/presets/types';
 import { Checkbox } from '@/ui/components/Checkbox';
 import { Field } from '@/ui/components/Field';
 import { TextArea } from '@/ui/components/TextArea';
@@ -9,6 +9,7 @@ import { DateInput, type DateValue } from './DateInput';
 import { FilesList } from './FilesList';
 import { NumberInput } from './NumberInput';
 import { OptionPicker } from './OptionPicker';
+import { RelationPicker, type PageSearch } from './RelationPicker';
 
 export interface PropertyInputProps {
   property: PropertySchema;
@@ -22,6 +23,8 @@ export interface PropertyInputProps {
   hint?: ComponentChildren;
   /** Label override (defaults to the property name). */
   label?: ComponentChildren;
+  /** Page search for relation properties (defaults to the background's `pages/search`; injected in tests). */
+  searchPages?: PageSearch;
 }
 
 // ---- value coercion (a mismatched kind renders as empty rather than crashing) ----
@@ -46,6 +49,9 @@ function dateOf(v: FormValue): DateValue {
 }
 function filesOf(v: FormValue): FileRef[] {
   return v.kind === 'files' ? v.value : [];
+}
+function relationOf(v: FormValue): RelationRef[] {
+  return v.kind === 'relation' ? v.value : [];
 }
 
 const TEXT_INPUT_TYPE: Partial<Record<NotionPropertyType, 'url' | 'email' | 'tel'>> = {
@@ -87,6 +93,7 @@ export function PropertyInput({
   error,
   hint,
   label,
+  searchPages,
 }: PropertyInputProps) {
   const name = label ?? property.name;
   const fieldProps = { label: name, required, error, hint };
@@ -205,6 +212,21 @@ export function PropertyInput({
       return (
         <Field {...fieldProps} group>
           <FilesList value={filesOf(value)} />
+        </Field>
+      );
+    case 'relation':
+      return (
+        <Field {...fieldProps}>
+          <RelationPicker
+            dataSourceId={property.relation?.dataSourceId}
+            value={relationOf(value)}
+            disabled={disabled}
+            listLabel={`Pages for ${property.name}`}
+            search={searchPages}
+            onChange={(refs) => {
+              onChange({ kind: 'relation', value: refs });
+            }}
+          />
         </Field>
       );
     default:

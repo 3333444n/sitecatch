@@ -2,6 +2,7 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/preac
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
+import { ok } from '@/lib/errors';
 import { getPreset, listPresets, savePreset } from '@/lib/presets/storage';
 import { favWebsitesSchema, makePreset, resourcesSchema } from '@/lib/presets/testing';
 import type { Preset } from '@/lib/presets/types';
@@ -125,11 +126,29 @@ describe('preset editor', () => {
     expect(screen.getByText(/Set a fixed value for “Kind”/, { selector: '.sco-issue-list li' })).toBeTruthy();
   });
 
+  it('sets a fixed relation value with the page picker and blocks while it is empty', async () => {
+    const mock = mockBackend({
+      'pages/search': (req) =>
+        ok([{ id: 'p-kineo', title: 'Kineo Website' }].filter((p) => p.title.includes(req.query ?? ''))),
+    });
+    render(<PresetEditor preset={basePreset()} schema={resourcesSchema} />);
+    await include('Related');
+    const related = row('Related');
+    expect(within(related).queryByRole('radio', { name: 'From the page' })).toBeNull();
+    await userEvent.click(within(related).getByRole('radio', { name: 'Fixed value' }));
+    expect(screen.getByText(/Set a fixed value for “Related”/, { selector: '.sco-issue-list li' })).toBeTruthy();
+    await userEvent.click(within(related).getByRole('combobox', { name: /Value/ }));
+    await userEvent.click(await within(related).findByRole('option', { name: /Kineo Website/ }));
+    expect(mock).toHaveBeenCalledWith({ type: 'pages/search', dataSourceId: 'ds-projects', query: undefined });
+    expect(within(related).getByRole('button', { name: 'Remove Kineo Website' })).toBeTruthy();
+    expect(screen.queryByText(/Set a fixed value for “Related”/, { selector: '.sco-issue-list li' })).toBeNull();
+  });
+
   it('lists read-only properties muted', () => {
     render(<PresetEditor preset={basePreset()} schema={resourcesSchema} connection={ACME} />);
     expect(screen.getByText('Can’t be filled by Sitecatch')).toBeTruthy();
-    expect(screen.getByText('Related')).toBeTruthy();
-    expect(screen.getByText('Relations aren’t supported yet')).toBeTruthy();
+    expect(screen.getByText('Created')).toBeTruthy();
+    expect(screen.queryByText(/Relations aren’t supported/)).toBeNull();
   });
 
   it('asks before leaving with unsaved changes', async () => {

@@ -222,6 +222,39 @@ describe('form', () => {
     });
   });
 
+  it('asks for a required relation with the page picker and sends it unchanged', async () => {
+    const related: Mapping = {
+      propertyId: 'rel',
+      propertyName: 'Related',
+      propertyType: 'relation',
+      source: { kind: 'ask', required: true, default: { kind: 'relation', value: [{ id: 'p-old', title: 'Old project' }] } },
+      editableInPopup: true,
+    };
+    await setup([makePreset({ mappings: [TITLE, related] })], {
+      'pages/search': () => ok([{ id: 'p-kineo', title: 'Kineo Website' }]),
+    });
+    const button = await saveButton();
+    await userEvent.click(await screen.findByRole('button', { name: 'Remove Old project' }));
+    await waitFor(() => {
+      expect(screen.getByText('Fill in Related to save.')).toBeTruthy();
+    });
+    expect(button).toHaveProperty('disabled', true);
+    await userEvent.click(screen.getByRole('combobox', { name: /Related/ }));
+    await userEvent.click(await screen.findByRole('option', { name: /Kineo Website/ }));
+    expect(requests('pages/search')[0]).toMatchObject({ dataSourceId: 'ds-projects' });
+    await waitFor(() => {
+      expect(button).toHaveProperty('disabled', false);
+    });
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(requests('save/start')).toHaveLength(1);
+    });
+    expect(requests('save/start')[0]?.values.rel).toEqual({
+      kind: 'relation',
+      value: [{ id: 'p-kineo', title: 'Kineo Website' }],
+    });
+  });
+
   it('shows a restricted-page warning but still allows saving', async () => {
     await setup([PRESET], {
       'capture/run': () =>

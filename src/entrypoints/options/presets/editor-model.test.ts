@@ -38,12 +38,13 @@ describe('editor compatibility filtering', () => {
     expect(availableSourceKinds('files')).toEqual(['extractor']);
     expect(availableSourceKinds('number')).toEqual(['ask', 'static']);
     expect(availableSourceKinds('title')).toEqual(['extractor', 'ask', 'static']);
-    expect(availableSourceKinds('relation')).toEqual([]);
+    expect(availableSourceKinds('relation')).toEqual(['ask', 'static']);
   });
 
   it('splits writable and read-only properties, title first', () => {
     expect(writableProperties(resourcesSchema)[0]?.id).toBe('title');
-    expect(readOnlyProperties(resourcesSchema).map((p) => p.id).sort()).toEqual(['created', 'rel']);
+    expect(readOnlyProperties(resourcesSchema).map((p) => p.id).sort()).toEqual(['created']);
+    expect(writableProperties(resourcesSchema).map((p) => p.id)).toContain('rel');
     expect(dedupeCandidates(resourcesSchema)[0]?.type).toBe('url');
   });
 });

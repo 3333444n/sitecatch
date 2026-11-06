@@ -29,6 +29,7 @@ export const TYPE_LABEL: Record<WritableProperty['type'], string> = {
   url: 'URL',
   email: 'Email',
   phone_number: 'Phone',
+  relation: 'Relation',
 };
 
 export interface PropertyRowProps {
