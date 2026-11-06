@@ -25,6 +25,7 @@ import { lastJobItem, type LastJobRecord } from '@/lib/storage/items';
 import { closePopup, OPTIONS_ROUTES, openInNewTab, openOptions, requestNotionPermission } from './nav';
 import { NoPresets, NoSetup } from './NoSetup';
 import { PageHeader } from './PageHeader';
+import { PopupHeader } from './PopupHeader';
 import { PresetPicker } from './PresetPicker';
 import { Saved, Saving } from './SaveStatus';
 
@@ -474,7 +475,11 @@ export function App() {
         <p class="sc-visually-hidden" role="status">
           Loading…
         </p>
-        <Skeleton height={28} />
+        <PopupHeader>
+          <div class="popup-picker">
+            <Skeleton height={32} />
+          </div>
+        </PopupHeader>
         <Skeleton variant="rect" height={96} />
       </main>
     );
@@ -482,6 +487,7 @@ export function App() {
   if (boot.kind === 'error') {
     return (
       <main class="sc-popup popup">
+        <PopupHeader />
         <ErrorBanner error={boot.error} onAction={actionHandler(reboot)} />
       </main>
     );
@@ -489,6 +495,7 @@ export function App() {
   if (boot.kind === 'no-setup') {
     return (
       <main class="sc-popup popup">
+        <PopupHeader />
         <NoSetup
           hasConnection={boot.hasConnection}
           hostPermission={boot.hostPermission}
@@ -505,16 +512,16 @@ export function App() {
   if (boot.kind === 'no-presets' || !preset || !tab) {
     return (
       <main class="sc-popup popup">
+        <PopupHeader />
         <NoPresets />
       </main>
     );
   }
 
   const header = (
-    <header class="popup-header">
-      <span class="popup-brand">Sitecatch</span>
+    <PopupHeader>
       <PresetPicker presets={presets} connections={connections} value={preset.id} disabled={saving} onChange={onPresetChange} />
-    </header>
+    </PopupHeader>
   );
 
   if (save.kind === 'running') {

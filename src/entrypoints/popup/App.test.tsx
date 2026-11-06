@@ -465,3 +465,68 @@ describe('saving', () => {
     expect(screen.getByRole('button', { name: 'Open setup' })).toBeTruthy();
   });
 });
+
+describe('settings button', () => {
+  const settingsButton = () => screen.findByRole('button', { name: 'Open Sitecatch settings' });
+
+  it('renders in the ready state next to the preset picker and opens the options page', async () => {
+    const openOptionsPage = vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockResolvedValue(undefined);
+    await setup();
+    await saveButton();
+    const button = await settingsButton();
+    expect(button.getAttribute('type')).toBe('button');
+    expect(button.getAttribute('title')).toBe('Settings');
+    expect(button.hasAttribute('disabled')).toBe(false);
+    expect(button.closest('header')?.querySelector('select')).toBeTruthy();
+    await userEvent.click(button);
+    await waitFor(() => {
+      expect(windowClose).toHaveBeenCalled();
+    });
+    expect(openOptionsPage).toHaveBeenCalledTimes(1);
+    expect(tabsCreate).not.toHaveBeenCalled();
+  });
+
+  it('renders in the no-setup state', async () => {
+    const openOptionsPage = vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockResolvedValue(undefined);
+    await setup([PRESET], { 'conn/list': () => ok({ hostPermission: true, connections: [] }) });
+    await screen.findByText('Connect Sitecatch to Notion');
+    await userEvent.click(await settingsButton());
+    await waitFor(() => {
+      expect(windowClose).toHaveBeenCalled();
+    });
+    expect(openOptionsPage).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders in the no-presets and boot-error states', async () => {
+    await setup([]);
+    await screen.findByText('Create your first preset');
+    expect(await settingsButton()).toBeTruthy();
+    cleanup();
+    routes['conn/list'] = () => err('unknown', 'Background unavailable.');
+    render(<App />);
+    await screen.findByText('Background unavailable.');
+    expect(await settingsButton()).toBeTruthy();
+  });
+
+  it('stays enabled while a save is running', async () => {
+    await jobItem('job-1').setValue({ id: 'job-1', status: 'creating', startedAt: new Date().toISOString() });
+    await setup();
+    const save = await saveButton();
+    await waitFor(() => {
+      expect(save).toHaveProperty('disabled', false);
+    });
+    await userEvent.click(save);
+    expect(await screen.findByText('Saving to Notion…')).toBeTruthy();
+    expect((await settingsButton()).hasAttribute('disabled')).toBe(false);
+  });
+
+  it('falls back to a new options tab when openOptionsPage rejects', async () => {
+    vi.spyOn(fakeBrowser.runtime, 'openOptionsPage').mockRejectedValue(new Error('nope'));
+    await setup();
+    await userEvent.click(await settingsButton());
+    await waitFor(() => {
+      expect(windowClose).toHaveBeenCalled();
+    });
+    expect(tabsCreate).toHaveBeenCalledWith({ url: expect.stringMatching(/options\.html$/) as unknown });
+  });
+});
