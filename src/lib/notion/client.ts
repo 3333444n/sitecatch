@@ -69,11 +69,6 @@ export interface NotionClient {
     propertyType?: 'url' | 'rich_text' | 'title',
   ): Promise<Result<DuplicateMatch[]>>;
   /**
-   * Not retried on network errors/timeouts/5xx: the caller should re-run the duplicate check.
-   * An error response carrying `additional_data.committed_resource_id` (the write was
-   * saved anyway) resolves to success with a URL built from that id.
-   */
-  /**
    * Pages of a data source for a relation picker, newest edit first, at most
    * `limit`. A non-empty `query` filters on the title property (`contains`).
    */
@@ -81,6 +76,11 @@ export interface NotionClient {
     dataSourceId: string,
     options: { titlePropertyId: string; query?: string; limit: number },
   ): Promise<Result<PageOption[]>>;
+  /**
+   * Not retried on network errors/timeouts/5xx: the caller should re-run the duplicate check.
+   * An error response carrying `additional_data.committed_resource_id` (the write was
+   * saved anyway) resolves to success with a URL built from that id.
+   */
   createPage(body: NotionCreatePageBody): Promise<Result<NotionPageRef>>;
   updatePage(pageId: string, body: NotionUpdatePageBody): Promise<Result<NotionPageRef>>;
   /** Single-part upload. Resolves to the file upload id to reference as `{ type: 'file_upload', file_upload: { id } }`. */
