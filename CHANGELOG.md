@@ -15,6 +15,7 @@ All notable changes to Sitecatch are documented here. The format follows [Keep a
 - Presets move to schema version 2 (`connectionId`, `workspaceName`). v1 presets, including imported JSON, migrate automatically with `connectionId: null` and use the only connection while there is exactly one; adding a second workspace pins them to the first.
 - The v0.1 token in `local:auth` is copied once into `local:connections` on upgrade. The original is kept so a downgrade still works, and is cleared when that workspace is removed.
 - Message protocol: `auth/validate`, `auth/status` and `auth/clear` became `conn/add`, `conn/list` and `conn/remove`. `ds/list` and `ds/schema` take a `connectionId`; `dup/check` and `save/start` use the preset's connection.
+- **Mixed versions:** a preset saved by this version (schema v2) is rejected by v0.1 on another synced device with "made with a newer version of Sitecatch — update the extension". Nothing is deleted; update every device. v1 presets stay v1 in sync until they are edited or a second workspace is added.
 - The Firefox add-on id `sitecatch@sitecatch.app` is final. v0.1.0 was signed under it on AMO's unlisted channel (2026-10-18).
 
 ## [0.1.0] - 2026-10-18
