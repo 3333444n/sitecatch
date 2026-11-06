@@ -278,6 +278,121 @@ describe('queryByUrl', () => {
   });
 });
 
+describe('relation properties', () => {
+  const TARGET = '6c4240a9-a3ce-413e-9fd0-8a51a4d0a49b';
+  const withRelations = {
+    ...dataSourceFixture,
+    properties: {
+      ...dataSourceFixture.properties,
+      Projects: {
+        id: 'proj',
+        name: 'Projects',
+        type: 'relation',
+        relation: {
+          data_source_id: TARGET,
+          database_id: '668d797c-76fa-4934-9b05-ad288df2d136',
+          limit: null,
+          type: 'single_property',
+          single_property: {},
+        },
+      },
+      Clients: {
+        id: 'cli%3A',
+        name: 'Clients',
+        type: 'relation',
+        relation: {
+          data_source_id: 'a1b2c3d4-0000-4000-8000-000000000001',
+          database_id: 'a1b2c3d4-0000-4000-8000-000000000002',
+          type: 'dual_property',
+          dual_property: { synced_property_id: 'Ab%3D', synced_property_name: 'References' },
+        },
+      },
+      Broken: { id: 'brk', name: 'Broken', type: 'relation', relation: {} },
+    },
+  };
+
+  it('parses the target data source of single- and dual-property relations', async () => {
+    const { client } = setup([jsonResponse(withRelations)]);
+    const res = await client.getDataSource(DS_ID);
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.data.properties.proj).toEqual({
+      id: 'proj',
+      name: 'Projects',
+      type: 'relation',
+      relation: { dataSourceId: TARGET },
+    });
+    expect(res.data.properties['cli%3A']?.relation).toEqual({
+      dataSourceId: 'a1b2c3d4-0000-4000-8000-000000000001',
+    });
+    // No target in the config → no `relation` field (the picker shows an error).
+    expect(res.data.properties.brk).toEqual({ id: 'brk', name: 'Broken', type: 'relation' });
+  });
+});
+
+describe('searchPages', () => {
+  const pageResult = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
+    object: 'page',
+    id,
+    url: `https://www.notion.so/${id.replace(/-/g, '')}`,
+    in_trash: false,
+    icon: { type: 'emoji', emoji: '🚀' },
+    properties: {
+      Name: { id: 'title', type: 'title', title: [{ plain_text: title }] },
+    },
+    ...extra,
+  });
+
+  it('lists the most recently edited pages without a filter when the query is empty', async () => {
+    const { client, calls } = setup([
+      jsonResponse({
+        object: 'list',
+        results: [
+          pageResult('p-1', 'Kineo Website'),
+          pageResult('p-2', ''),
+          pageResult('p-3', 'Old', { in_trash: true }),
+        ],
+        has_more: false,
+        next_cursor: null,
+      }),
+    ]);
+    const res = await client.searchPages(DS_ID, { titlePropertyId: 'title', query: '  ', limit: 25 });
+    expect(calls[0]?.url).toBe(`https://api.notion.com/v1/data_sources/${DS_ID}/query`);
+    expect(calls[0]?.method).toBe('POST');
+    expect(jsonBody(calls[0])).toEqual({
+      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+      page_size: 25,
+      result_type: 'page',
+    });
+    expect(res).toEqual({
+      ok: true,
+      data: [
+        { id: 'p-1', title: 'Kineo Website', icon: { kind: 'emoji', emoji: '🚀' }, url: 'https://www.notion.so/p1' },
+        { id: 'p-2', title: 'Untitled', icon: { kind: 'emoji', emoji: '🚀' }, url: 'https://www.notion.so/p2' },
+      ],
+    });
+  });
+
+  it('filters on the title property with contains when a query is given', async () => {
+    const { client, calls } = setup([jsonResponse({ object: 'list', results: [], has_more: false })]);
+    await client.searchPages(DS_ID, { titlePropertyId: 'Tt%3D', query: ' Kineo ', limit: 25 });
+    expect(jsonBody(calls[0])).toEqual({
+      filter: { property: 'Tt%3D', title: { contains: 'Kineo' } },
+      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+      page_size: 25,
+      result_type: 'page',
+    });
+  });
+
+  it('maps errors like other queries', async () => {
+    const { client } = setup([jsonResponse(errorFixtures.object_not_found, 404)]);
+    const res = await client.searchPages(DS_ID, { titlePropertyId: 'title', limit: 25 });
+    expect(res.ok).toBe(false);
+    if (res.ok) return;
+    expect(res.error.code).toBe('db-not-shared');
+  });
+});
+
 describe('createPage / updatePage', () => {
   const body = {
     parent: { type: 'data_source_id' as const, data_source_id: DS_ID },

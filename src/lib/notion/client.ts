@@ -17,6 +17,7 @@ import type {
   NotionPropertyType,
   PropertySchema,
   NotionUpdatePageBody,
+  PageOption,
   SelectOption,
 } from './types';
 import { endpoints, MAX_PAGE_SIZE, NOTION_VERSION, SINGLE_PART_UPLOAD_MAX_BYTES } from './endpoints';
@@ -72,6 +73,14 @@ export interface NotionClient {
    * An error response carrying `additional_data.committed_resource_id` (the write was
    * saved anyway) resolves to success with a URL built from that id.
    */
+  /**
+   * Pages of a data source for a relation picker, newest edit first, at most
+   * `limit`. A non-empty `query` filters on the title property (`contains`).
+   */
+  searchPages(
+    dataSourceId: string,
+    options: { titlePropertyId: string; query?: string; limit: number },
+  ): Promise<Result<PageOption[]>>;
   createPage(body: NotionCreatePageBody): Promise<Result<NotionPageRef>>;
   updatePage(pageId: string, body: NotionUpdatePageBody): Promise<Result<NotionPageRef>>;
   /** Single-part upload. Resolves to the file upload id to reference as `{ type: 'file_upload', file_upload: { id } }`. */
@@ -221,6 +230,18 @@ export function mapDataSourceSummary(raw: unknown): DataSourceSummary | null {
   return summary;
 }
 
+/**
+ * Target data source of a relation property config. Since 2025-09-03 the
+ * config carries `data_source_id` (plus `database_id` for backwards
+ * compatibility) for both `single_property` and `dual_property` relations.
+ * https://developers.notion.com/reference/property-object (Relation)
+ */
+function relationTarget(config: unknown): string | undefined {
+  if (!isObj(config)) return undefined;
+  const id = str(config.data_source_id);
+  return id && id.length > 0 ? id : undefined;
+}
+
 export function mapDataSourceSchema(raw: unknown): DataSourceSchema | null {
   if (!isObj(raw) || raw.object !== 'data_source' || !isObj(raw.properties)) return null;
   const id = str(raw.id);
@@ -235,6 +256,10 @@ export function mapDataSourceSchema(raw: unknown): DataSourceSchema | null {
     const prop: PropertySchema = { id: propId, name: str(value.name) ?? key, type };
     if (type === 'select' || type === 'multi_select' || type === 'status') {
       prop.options = toOptions(value[type]);
+    }
+    if (type === 'relation') {
+      const target = relationTarget(value.relation);
+      if (target) prop.relation = { dataSourceId: target };
     }
     properties[propId] = prop;
     if (type === 'title') titlePropertyId = propId;
@@ -263,6 +288,19 @@ export function mapDuplicateMatch(raw: unknown): DuplicateMatch | null {
     title: pageTitle(raw.properties) || 'Untitled',
     lastEditedTime: str(raw.last_edited_time) ?? '',
   };
+}
+
+/** A page from a data source query as a relation-picker option (null when trashed/invalid). */
+export function mapPageOption(raw: unknown): PageOption | null {
+  if (!isObj(raw) || raw.object !== 'page') return null;
+  const id = str(raw.id);
+  if (!id || raw.in_trash === true) return null;
+  const option: PageOption = { id, title: pageTitle(raw.properties) || 'Untitled' };
+  const icon = toIcon(raw.icon);
+  if (icon) option.icon = icon;
+  const url = str(raw.url);
+  if (url) option.url = url;
+  return option;
 }
 
 /** `https://www.notion.so/<id without dashes>` — Notion redirects this to the page. */
@@ -437,6 +475,31 @@ export function createNotionClient(options: NotionClientOptions): NotionClient {
         if (m) matches.push(m);
       }
       return ok(matches);
+    },
+
+    async searchPages(dataSourceId, { titlePropertyId, query, limit }) {
+      const json: Json = {
+        sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+        page_size: Math.max(1, Math.min(limit, MAX_PAGE_SIZE)),
+        result_type: 'page',
+      };
+      const q = query?.trim();
+      if (q) json.filter = { property: titlePropertyId, title: { contains: q } };
+      const res = await request({
+        method: 'POST',
+        url: endpoints.queryDataSource(dataSourceId),
+        op: 'query',
+        json,
+      });
+      if (!res.ok) return res;
+      const raw = res.data;
+      if (!isObj(raw) || !Array.isArray(raw.results)) return fail(unexpectedResponseError('query'));
+      const out: PageOption[] = [];
+      for (const r of raw.results) {
+        const option = mapPageOption(r);
+        if (option) out.push(option);
+      }
+      return ok(out.slice(0, limit));
     },
 
     async createPage(body) {
