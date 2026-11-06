@@ -12,9 +12,11 @@ export const favWebsitesSchema = favJson as unknown as DataSourceSchema;
 
 export function makePreset(overrides: Partial<Preset> = {}): Preset {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'preset-1',
     name: 'Resources',
+    connectionId: null,
+    workspaceName: null,
     dataSourceId: 'ds-resources',
     dataSourceName: 'Resources',
     mappings: [],
