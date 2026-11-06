@@ -8,12 +8,14 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 ![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
-> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet: install from source, or install a signed `.xpi` in Firefox (see [Install](#install-from-source)). Source and issues: <https://github.com/3333444n/sitecatch>.
+> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. `main` also has unreleased work: several workspaces and relation properties. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet: install from source, or install a signed `.xpi` in Firefox (see [Install](#install-from-source)). Source and issues: <https://github.com/3333444n/sitecatch>.
 
 ## Features
 
 - **Presets per database.** Example: "Resources" fills Name, URL, Description, Type and Tags, and "Fav websites" fills Domain, Fonts and Rating. You can have as many presets as you like.
 - **Per-property value sources**: extracted from the page (with fallbacks, e.g. Open Graph title → page title), **asked in the popup**, or a **fixed value**.
+- **Relation properties**: link pages of a related database, picked with a search in the popup or fixed in the preset.
+- **Several Notion workspaces**: connect each one with its own token. Each preset belongs to its workspace, and the popup groups presets by workspace.
 - **Screenshots**: into a files property, as the page cover, and/or as an image in the page body. Uploaded to Notion, no third-party hosting.
 - **Cover & icon** from the page's Open Graph image and favicon.
 - **Duplicate detection** by normalized URL (tracking parameters and `#fragments` ignored): update the existing page, save a duplicate, or open the existing one.
@@ -63,7 +65,7 @@ The setup wizard opens after install. It offers two ways to connect:
 1. **Personal access token (recommended).** In Notion's Developer portal → **Personal access tokens** → **New token** (name it `Sitecatch`) → copy it (it's shown only once). It acts as you, so every database you can open just works.
 2. **Internal connection.** For a narrower token: a Workspace Owner creates an internal connection with Read, Update and Insert content, copies its API token, then shares each database with it (database **•••** → **Connections** → **+ Add connection** → Sitecatch).
 
-Then allow access to api.notion.com when asked, paste the token, create a preset for a database, and save your first page.
+Then allow access to api.notion.com when asked, paste the token, create a preset for a database, and save your first page. Databases in more than one workspace? Add each workspace under Options → **Workspaces** → **Add workspace**.
 
 Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md).
 
@@ -73,10 +75,10 @@ Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md
 | --- | --- |
 | `activeTab` | Read and screenshot the current tab, only after you click the button |
 | `scripting` | Collect title, metadata, selection and fonts from that tab (read-only) |
-| `storage` | Your token and settings (this device), presets (synced) |
+| `storage` | Your tokens and settings (this device), presets (synced) |
 | `https://api.notion.com/*` | The only server Sitecatch talks to |
 
-**Privacy:** your browser talks to api.notion.com and nothing else. No account, analytics, telemetry or remote code. The token stays on this device (`storage.local`) and is never synced, exported or logged. Page data (URL, title, descriptions, screenshot…) is sent only when you save, plus the page URL for the duplicate check when the popup opens. Firefox shows this as the required "browsing activity" and "website content" data collection. Details: [docs/permissions-privacy.md](docs/permissions-privacy.md).
+**Privacy:** your browser talks to api.notion.com and nothing else. No account, analytics, telemetry or remote code. Tokens stay on this device (`storage.local`) and are never synced, exported or logged. Page data (URL, title, descriptions, screenshot…) is sent only when you save, plus the page URL for the duplicate check when the popup opens. Firefox shows this as the required "browsing activity" and "website content" data collection. Details: [docs/permissions-privacy.md](docs/permissions-privacy.md).
 
 ## Development
 
