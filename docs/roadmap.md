@@ -13,7 +13,9 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source or as a signe
 - Signed on AMO's **unlisted** channel (self-distributed `.xpi`, 2026-10-18). The gecko id `sitecatch@sitecatch.app` is final and permanent. Process: [releasing.md](./releasing.md).
 - Manually tested end to end in Firefox with a personal access token on a Free-plan workspace (2026-10-18). Verified and still-open items: [testing.md](./testing.md#manual-e2e-results).
 
-## Unreleased (on `main`)
+## Unreleased
+
+On `main`, not in a release yet.
 
 - **Multiple workspace connections**: one token per Notion workspace (`local:connections`, `conn/add` / `conn/list` / `conn/remove`), each preset owns its workspace (preset `schemaVersion` 2, `connectionId` / `workspaceName`), Options → **Workspaces** overview with **Add workspace** / **Replace token** / **Remove**, workspace picker in the preset editor, popup presets grouped by workspace. A v0.1 token (`local:auth`) migrates automatically ([ADR 0010](./decisions/0010-multiple-workspace-connections.md), [architecture.md](./architecture.md#workspaces-connections)).
 - **Relation properties**: link pages of a related database from a fixed value or an ask-in-popup searchable picker (`pages/search`, `RelationPicker`, `relation` form value) ([preset-model.md](./preset-model.md#relations)).
