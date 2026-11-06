@@ -4,6 +4,8 @@ All notable changes to Sitecatch are documented here. The format follows [Keep a
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-06
+
 ### Added
 
 - **Multiple workspace connections.** Connect several Notion workspaces, each with its own token (`local:connections`, one connection per workspace, keyed by the workspace id when Notion reports it). Each preset owns its workspace (`Preset.connectionId`); there is no global workspace switcher. The popup groups presets by workspace when more than one is connected, and Options → Workspaces lists connections, removes them, and assigns presets that need a workspace. Decision: [ADR 0010](docs/decisions/0010-multiple-workspace-connections.md).
@@ -36,5 +38,6 @@ First release (install from source; store listings to follow).
 - Settings: capture delay, JPEG quality, Notion account, recent saves.
 - Sitecatch icon.
 
-[Unreleased]: https://github.com/3333444n/sitecatch/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/3333444n/sitecatch/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/3333444n/sitecatch/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/3333444n/sitecatch/releases/tag/v0.1.0

@@ -13,7 +13,7 @@ Code: <https://github.com/3333444n/sitecatch>. Install from source or as a signe
 - Signed on AMO's **unlisted** channel (self-distributed `.xpi`, 2026-10-18). The gecko id `sitecatch@sitecatch.app` is final and permanent. Process: [releasing.md](./releasing.md).
 - Manually tested end to end in Firefox with a personal access token on a Free-plan workspace (2026-10-18). Verified and still-open items: [testing.md](./testing.md#manual-e2e-results).
 
-## Unreleased
+## v0.2.0 (released 2026-11-06)
 
 On `main`, not in a release yet.
 

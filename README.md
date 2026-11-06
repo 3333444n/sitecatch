@@ -8,7 +8,7 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 ![Sitecatch popup saving a page to Notion](assets/hero.gif)
 -->
 
-> **Status:** [v0.1.0](CHANGELOG.md) (October 2026), early. `main` also has unreleased work: several workspaces and relation properties. Tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet: install from source, or install a signed `.xpi` in Firefox (see [Install](#install-from-source)). Source and issues: <https://github.com/3333444n/sitecatch>.
+> **Status:** [v0.2.0](CHANGELOG.md) (November 2026), early: several workspaces, relation properties and a popup settings button. v0.1.0 was tested end to end in Firefox; the Chrome build isn't smoke-tested yet. There are no store listings yet: install from source, or install a signed `.xpi` in Firefox (see [Install](#install-from-source)). Source and issues: <https://github.com/3333444n/sitecatch>.
 
 ## Features
 
