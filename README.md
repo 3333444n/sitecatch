@@ -41,11 +41,12 @@ Sitecatch is an open-source browser extension, built for Firefox first, that sav
 
 ## Install (from source)
 
-Requirements: Node 24 and pnpm 10.
+Requirements: Node 24 (pinned in `.nvmrc`, e.g. `nvm use`) and pnpm 10 (pinned in `package.json`; `corepack enable` installs it).
 
 ```sh
 git clone https://github.com/3333444n/sitecatch.git
 cd sitecatch
+corepack enable
 pnpm install
 pnpm build:firefox
 ```
@@ -88,11 +89,11 @@ Full walkthrough with troubleshooting: [docs/setup-guide.md](docs/setup-guide.md
 | `pnpm build:firefox` / `pnpm build:chrome` | Production build |
 | `pnpm test` | Unit tests (Vitest) |
 | `pnpm typecheck` / `pnpm lint` / `pnpm lint:ext` | Types, ESLint, web-ext lint |
-| `pnpm check` | All of the above. Must pass before opening a PR. |
+| `pnpm check` | All of the above. Must pass before opening a PR; CI runs it on every PR and push to `main`. |
 | `pnpm zip:firefox` / `pnpm zip:chrome` | Store-ready zips in `.output/` |
 | `pnpm sign:firefox` | Build and sign the Firefox `.xpi` on AMO (unlisted). See [docs/releasing.md](docs/releasing.md). |
 
-Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
+Docs: [`/docs`](docs/README.md) · Design: [DESIGN.md](DESIGN.md) · Contributing: [CONTRIBUTING.md](CONTRIBUTING.md) · Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) · Security: [SECURITY.md](SECURITY.md) · Changes: [CHANGELOG.md](CHANGELOG.md)
 
 ## License
 

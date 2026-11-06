@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and a user-supplied token (a personal access token, or an internal connection token — Notion now calls integrations "connections"). No backend. Repository: <https://github.com/3333444n/sitecatch>. Status: v0.1.0 released (2026-10-18), manually tested in Firefox. Unreleased on `main`: multiple Notion workspace connections ([ADR 0010](./docs/decisions/0010-multiple-workspace-connections.md)) and relation properties (see [docs/roadmap.md](./docs/roadmap.md#unreleased)).
+**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and user-supplied tokens, one per connected Notion workspace (each a personal access token or an internal connection token — Notion now calls integrations "connections"). No backend. Repository: <https://github.com/3333444n/sitecatch>. Status: v0.1.0 released (2026-10-18), manually tested in Firefox. Unreleased on `main`: multiple Notion workspace connections ([ADR 0010](./docs/decisions/0010-multiple-workspace-connections.md)) and relation properties (see [docs/roadmap.md](./docs/roadmap.md#unreleased)).
 
 ## Source of truth
 
@@ -20,7 +20,7 @@
 | `pnpm typecheck` | `wxt prepare && tsc --noEmit` |
 | `pnpm lint` | ESLint (flat config, typescript-eslint strict) |
 | `pnpm lint:ext` | `web-ext lint` on the Firefox build (one known, harmless warning: `innerHTML` in Preact's `jsx-runtime`) |
-| `pnpm check` | typecheck + lint + test + build:firefox + lint:ext (must be green before a PR) |
+| `pnpm check` | typecheck + lint + test + build:firefox + lint:ext (must be green before a PR; CI runs it on every PR and push to `main`) |
 
 Toolchain: Node 24 (`.nvmrc`), pnpm 10.
 
@@ -30,7 +30,7 @@ Toolchain: Node 24 (`.nvmrc`), pnpm 10.
   `git worktree add ../sitecatch-wt/<name> -b <type>/<name>` (e.g. `feat/notion-client`, `fix/dup-check`, `docs/setup-guide`).
 - [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`. Small, focused commits.
 - **File ownership:** only edit files/directories assigned to your task. If you need a change elsewhere, note it in your report instead of making it.
-- Don't push unless told to. The orchestrator reviews, runs `pnpm check`, pushes the branch and opens a PR on [GitHub](https://github.com/3333444n/sitecatch) against `main`; the maintainer reviews and merges. No local merges into `main`.
+- Don't push unless told to. The orchestrator reviews, runs `pnpm check` (CI runs it again on the PR), pushes the branch and opens a PR on [GitHub](https://github.com/3333444n/sitecatch) against `main`; the maintainer reviews and merges. No local merges into `main`.
 
 ## Contract files (frozen)
 
