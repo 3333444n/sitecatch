@@ -1,6 +1,6 @@
 # AGENTS.md
 
-**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and a user-supplied token (a personal access token, or an internal connection token — Notion now calls integrations "connections"). No backend. Repository: <https://github.com/3333444n/sitecatch>. Status: v0.1.0, manually tested in Firefox (see [docs/roadmap.md](./docs/roadmap.md#next)).
+**Sitecatch** — an open-source (MIT), Firefox-first browser extension (WXT + TypeScript + MV3, Preact) that saves websites into Notion databases via user-defined presets, using the official Notion API and a user-supplied token (a personal access token, or an internal connection token — Notion now calls integrations "connections"). No backend. Repository: <https://github.com/3333444n/sitecatch>. Status: v0.1.0 released (2026-10-18), manually tested in Firefox. Unreleased on `main`: multiple Notion workspace connections ([ADR 0010](./docs/decisions/0010-multiple-workspace-connections.md)) and relation properties (see [docs/roadmap.md](./docs/roadmap.md#unreleased)).
 
 ## Source of truth
 
