@@ -13,7 +13,7 @@ import type { AppError, Result } from '@/lib/errors';
 import type { CaptureResult } from '@/lib/extract/types';
 import type { DataSourceSchema, DataSourceSummary, DuplicateMatch } from '@/lib/notion/types';
 import type { FormValues } from '@/lib/presets/types';
-import type { TokenKind } from '@/lib/storage/items';
+import type { Connection, TokenKind } from '@/lib/storage/items';
 
 /** How a save should treat existing pages. */
 export type SaveMode =
@@ -44,46 +44,40 @@ export interface JobState {
   startedAt: string;
 }
 
+/** A connection as the UI sees it — everything except the token. */
+export type ConnectionSummary = Omit<Connection, 'token'>;
+
 /** Params placeholder for requests that take no arguments. */
 export type NoParams = object;
 
 /** Map of request type → params (without `type`) and response data. */
 export interface RequestMap {
-  /** Validate a pasted token (GET /v1/users/me) and store it on success. */
-  'auth/validate': {
+  /**
+   * Validate a pasted token (GET /v1/users/me) and store it as a connection.
+   * Replaces the token of an existing connection for the same workspace.
+   */
+  'conn/add': {
     params: { token: string; tokenKind: TokenKind };
-    response: {
-      botName: string;
-      workspaceName: string | null;
-      /** Workspace single-file upload limit (`bot.workspace_limits`), when Notion reports it. */
-      maxFileUploadBytes?: number;
-    };
+    response: ConnectionSummary;
   };
-  /** Cheap status check used by popup/options on open. Never returns the token. */
-  'auth/status': {
+  /** Cheap status check used by popup/options on open. Never returns tokens. */
+  'conn/list': {
     params: NoParams;
-    response: {
-      hasToken: boolean;
-      tokenKind?: TokenKind;
-      hostPermission: boolean;
-      workspaceName?: string;
-      /** From the last successful validation, when known. */
-      maxFileUploadBytes?: number;
-    };
+    response: { hostPermission: boolean; connections: ConnectionSummary[] };
   };
-  /** Forget the stored token. */
-  'auth/clear': {
-    params: NoParams;
+  /** Forget one connection's token. Presets bound to it are kept (they show as needing a workspace). */
+  'conn/remove': {
+    params: { connectionId: string };
     response: null;
   };
   /** Data sources visible to the integration. */
   'ds/list': {
-    params: { query?: string };
+    params: { connectionId: string; query?: string };
     response: DataSourceSummary[];
   };
   /** Schema for one data source; cached in storage.session unless `force`. */
   'ds/schema': {
-    params: { dataSourceId: string; force?: boolean };
+    params: { connectionId: string; dataSourceId: string; force?: boolean };
     response: DataSourceSchema;
   };
   /** Probe + screenshot the given tab. */
@@ -132,9 +126,9 @@ export type Handler<T extends RequestType> = (
 export type Handlers = { [K in RequestType]: Handler<K> };
 
 const REQUEST_TYPES: Record<RequestType, true> = {
-  'auth/validate': true,
-  'auth/status': true,
-  'auth/clear': true,
+  'conn/add': true,
+  'conn/list': true,
+  'conn/remove': true,
   'ds/list': true,
   'ds/schema': true,
   'capture/run': true,

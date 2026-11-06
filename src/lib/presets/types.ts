@@ -71,10 +71,19 @@ export interface Mapping {
 }
 
 export interface Preset {
-  schemaVersion: 1;
+  schemaVersion: 2;
   /** Random id (crypto.randomUUID()). */
   id: string;
   name: string;
+  /**
+   * The `Connection.id` (workspace) whose token reads/writes this preset's data
+   * source. `null` = unassigned (migrated from v1 or imported): it resolves to
+   * the only connection when exactly one exists, otherwise the user must pick
+   * one in the editor before saving.
+   */
+  connectionId: string | null;
+  /** Snapshot of the workspace name, for display when the connection isn't on this device. */
+  workspaceName: string | null;
   dataSourceId: string;
   /** Snapshot for display when offline / before schema fetch. */
   dataSourceName: string;
@@ -119,6 +128,7 @@ export interface PresetIssue {
 /** JSON export/import envelope. */
 export interface PresetExportFile {
   format: 'sitecatch-presets';
+  /** Envelope version; presets inside carry their own `schemaVersion` and are migrated on import. */
   version: 1;
   /** ISO 8601. */
   exportedAt: string;

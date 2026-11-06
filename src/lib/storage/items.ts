@@ -2,7 +2,7 @@
  * CONTRACT FILE — shared across all modules. Change only via the orchestrator.
  *
  * All persisted state, defined with WXT's typed storage items.
- *   local:   device-only (token, settings, history) — the token NEVER goes to sync.
+ *   local:   device-only (connections/tokens, settings, history) — tokens NEVER go to sync.
  *   sync:    presets (one item per preset to stay under the 8 KB/item quota) + index.
  *   session: in-memory per browser session (save jobs, schema cache, popup's last job).
  */
@@ -18,6 +18,7 @@ import type { Preset } from '@/lib/presets/types';
  */
 export type TokenKind = 'personal' | 'connection';
 
+/** @deprecated v0.1 single-token shape (`local:auth`). Read only by the one-time connections migration. */
 export interface AuthState {
   /** Notion API token. Never log, never send anywhere but api.notion.com. */
   token: string;
@@ -29,6 +30,30 @@ export interface AuthState {
    * 5 MiB on free plans), when Notion reports it. The save pipeline sizes
    * screenshots to fit it.
    */
+  maxFileUploadBytes?: number;
+  /** ISO 8601. */
+  validatedAt: string;
+}
+
+/**
+ * One Notion workspace the user connected with a token. Multiple connections
+ * can coexist; each preset is bound to one (`Preset.connectionId`).
+ * At most one connection per workspace: validating a token for a workspace
+ * that is already connected replaces that connection's token in place.
+ */
+export interface Connection {
+  /**
+   * Stable id. The Notion workspace id when `GET /v1/users/me` reports one
+   * (so presets synced to another device resolve once that device connects
+   * the same workspace); otherwise a random UUID.
+   */
+  id: string;
+  /** Notion API token. Never log, never send anywhere but api.notion.com. */
+  token: string;
+  tokenKind: TokenKind;
+  botName: string;
+  workspaceName: string | null;
+  /** Workspace single-file upload limit in bytes (`bot.workspace_limits`), when reported. */
   maxFileUploadBytes?: number;
   /** ISO 8601. */
   validatedAt: string;
@@ -67,7 +92,16 @@ export interface CachedSchema {
   fetchedAt: number;
 }
 
+/**
+ * @deprecated v0.1 single token. Migrated once into `connectionsItem` (copied,
+ * not deleted, so a downgrade keeps working); removed when that connection is removed.
+ */
 export const authItem = storage.defineItem<AuthState | null>('local:auth', { fallback: null });
+
+/** All connected workspaces, in display order. Device-only (holds tokens). */
+export const connectionsItem = storage.defineItem<Connection[]>('local:connections', {
+  fallback: [],
+});
 
 export const settingsItem = storage.defineItem<Settings>('local:settings', {
   fallback: DEFAULT_SETTINGS,
