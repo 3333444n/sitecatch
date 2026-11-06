@@ -1,6 +1,6 @@
 # Setup guide
 
-Setup takes about five minutes. You create a Notion token, paste it into Sitecatch, and pick the databases you want to save into. Sitecatch opens this wizard automatically after install. You can reopen it any time from the options page (**Setup**).
+Setup takes about five minutes. You create a Notion token, paste it into Sitecatch, and pick the databases you want to save into. Sitecatch opens this wizard automatically after install. You can reopen it any time from the options page (**Workspaces**). Your databases live in more than one Notion workspace? Connect each one with its own token ([More than one workspace](#more-than-one-workspace)).
 
 There are two ways to connect. The wizard asks you to choose first:
 
@@ -126,7 +126,7 @@ With a **personal access token**:
 
 | Cause | Fix |
 | --- | --- |
-| **Wrong workspace** | A PAT belongs to one workspace. Create a token in the workspace that holds the database (pick it in the workspace picker) and paste it. |
+| **Wrong workspace** | A PAT belongs to one workspace, so the list shows only that workspace. Add the other workspace: **Workspaces → Add workspace**, with a token created there (pick it in the workspace picker). |
 | **You don't have access** | The token sees exactly what you can open. Ask the database owner to share it with you. |
 | **Linked view** | A linked view (↗ next to its name) points to another database. Pick the original. |
 | **Token expired or revoked** | Validation fails with "Notion rejected this token". Create a new token and paste it. |
@@ -139,20 +139,26 @@ With an **internal connection**:
 | **Not shared yet** (most common) | Step 4 for that database, then **Refresh**. |
 | **Inline database / shared parent page** | An inline database inherits access from its page. Share the parent page, or open the database as a full page and share it. |
 | **Linked view** | Share the **original** database (a linked view shows ↗ next to its name), or the page that contains it. |
-| **Wrong workspace** | The connection was created for another workspace. Create it in the right one and paste its token. |
+| **Wrong workspace** | A connection belongs to the workspace it was created in. Create one in the workspace that holds the database and add it: **Workspaces → Add workspace**. |
 | **Token revoked or refreshed** | Validation fails with "Notion rejected this token". Copy the current token from the Configuration tab. |
 | **Just shared** | Search can lag a few seconds. Wait, then **Refresh**. |
 
-### Changing or removing the token
+### More than one workspace
 
-Reopen **Setup**: when connected, it shows the workspace with **Replace token** and **Disconnect**. **Settings → Notion account** has **Disconnect** and **Re-run setup** too. Disconnecting removes the token from this device; presets stay.
+Each Notion workspace needs its own token (a personal access token or a connection belongs to one workspace). Options → **Workspaces** lists every connected workspace; **Add workspace** runs the same steps for another one. Each preset is tied to the workspace its database lives in, so picking a preset in the popup also picks the workspace. With several workspaces, the popup groups presets by workspace.
+
+Pasting a new token for a workspace that's already connected replaces its token; it doesn't add a duplicate.
+
+### Changing or removing a token
+
+Options → **Workspaces**: each workspace has **Replace token** and **Remove**. Removing forgets that token on this device. Its presets stay, but can't save until you connect that workspace again or pick another workspace for them in the preset editor. **Settings → Notion workspaces** shows what's connected.
 
 ## Your first preset
 
 A preset says *which database* and *where each property's value comes from*. Example: a "Resources" database with Name (title), URL, Description (text), Type (select), Tags (multi-select) and Screenshot (files).
 
 1. Options → **Presets** → **New preset**.
-2. **Pick the database** "Resources". The preset is named after it; rename it if you like.
+2. With more than one workspace connected, **pick the workspace** first. Then **pick the database** "Resources". The preset is named after it; rename it if you like.
 3. Sitecatch lists the database's properties. **Turn on** the ones you want filled. Others are left alone.
    - **Name** ← *From the page*: *Open Graph title*, fallback *Page title*. *Editable in popup* is on.
    - **URL** ← *From the page*: *Canonical URL*, fallback *URL*.

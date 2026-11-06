@@ -8,9 +8,11 @@ A **preset** describes how one kind of save works: which Notion data source to w
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `schemaVersion` | `1` | Shape version for storage and export. Bump with a migration when the shape changes. |
+| `schemaVersion` | `2` | Shape version for storage and export. Bump with a migration when the shape changes ([Migrations](#migrations)). |
 | `id` | `string` | `crypto.randomUUID()`. |
 | `name` | `string` | Shown in the popup picker. |
+| `connectionId` | `string \| null` | The workspace connection (`Connection.id`, usually the Notion workspace id) whose token reads and writes this preset's data source. `null` = unassigned: resolves to the only connection when exactly one exists, otherwise the user picks a workspace in the editor ([architecture.md](./architecture.md#workspaces-connections)). |
+| `workspaceName` | `string \| null` | Snapshot of the workspace name, shown when that workspace isn't connected on this device. |
 | `dataSourceId` | `string` | Target Notion **data source** ([notion-api.md](./notion-api.md#data-sources-model)). |
 | `dataSourceName` | `string` | Snapshot of the name, used for display before the schema loads or when offline. |
 | `mappings` | `Mapping[]` | One per property that Sitecatch writes. **Unmapped properties are never shown or written.** |
@@ -109,7 +111,15 @@ Presets live in `storage.sync`, so they follow the user across browsers signed i
 
 Quotas (Chrome and Firefox, [MDN storage.sync](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/storage/sync)): about **100 KB total**, **8 KB per item**, **512 items**. Chrome also limits writes (120/minute, 1800/hour). One preset per item keeps each preset well under 8 KB and avoids rewriting all presets on every edit. A preset that would exceed 8 KB (very many mappings) is rejected by the editor with a clear message.
 
-In Firefox, `storage.sync` only syncs when the user is signed in to a Mozilla account with add-on sync enabled. Otherwise it behaves like local storage. The **token is never stored in sync** ([permissions-privacy.md](./permissions-privacy.md#token-storage)).
+In Firefox, `storage.sync` only syncs when the user is signed in to a Mozilla account with add-on sync enabled. Otherwise it behaves like local storage. **Tokens are never stored in sync** ([permissions-privacy.md](./permissions-privacy.md#token-storage)).
+
+## Migrations
+
+Every preset read from storage or an import file goes through `migratePreset` (`src/lib/presets/migrate.ts`), which upgrades older shapes step by step and rejects newer ones ("update the extension").
+
+| From → to | Change |
+| --- | --- |
+| v1 → v2 | Adds `connectionId: null` and `workspaceName: null` (multiple workspaces, [ADR 0010](./decisions/0010-multiple-workspace-connections.md)). With one connected workspace, these presets keep working unchanged; adding a second workspace pins them to the first one. On save the editor always writes the resolved `connectionId`. |
 
 ## Import / export
 
@@ -124,9 +134,9 @@ Options → Import/Export reads and writes a JSON file in this envelope (`Preset
 }
 ```
 
-- Export contains presets only. **Never the token**, settings or history.
+- Export contains presets only. **Never tokens**, settings or history. Each preset keeps its `connectionId` / `workspaceName`.
 - Import checks `format === "sitecatch-presets"` and a supported `version`, then validates each preset's shape and `schemaVersion`. Invalid files are rejected with a message. Nothing is partially imported.
-- Imported presets may point to data sources the current token can't see (e.g. another workspace). They import fine and show `missing` / `db-not-shared` issues until fixed.
+- Imported presets keep their `connectionId`. If that workspace isn't connected on this device they import fine but are **unresolved**: the list shows "Workspace not connected", the popup refuses to save with an actionable error, and the editor asks to connect the workspace or pick one. Presets whose workspace is connected but whose data source that token can't see show `missing` / `db-not-shared` issues until fixed.
 - Ids: an imported preset whose `id` already exists asks the user to **replace** it or **keep both**. Keep both gives the imported preset a new id.
 
 ## Examples
@@ -137,9 +147,11 @@ Two databases from the [E2E checklist](./testing.md#manual-e2e-checklist). Prope
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "6f1c2a7e-3b0d-4d8e-9a51-1c2f3e4d5a6b",
   "name": "Resources",
+  "connectionId": "0c7a4c28-5b51-4f2a-9b0f-1d2f3c4b5a69",
+  "workspaceName": "Acme",
   "dataSourceId": "2a3b4c5d-6e7f-4081-92a3-b4c5d6e7f809",
   "dataSourceName": "Resources",
   "mappings": [
@@ -205,9 +217,11 @@ Two databases from the [E2E checklist](./testing.md#manual-e2e-checklist). Prope
 
 ```json
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "id": "b7e8f9a0-1c2d-4e3f-8a9b-0c1d2e3f4a5b",
   "name": "Fav websites",
+  "connectionId": null,
+  "workspaceName": null,
   "dataSourceId": "9f8e7d6c-5b4a-4392-8170-6f5e4d3c2b1a",
   "dataSourceName": "Fav websites",
   "mappings": [

@@ -1,15 +1,15 @@
 # UI flows
 
-Two UI surfaces: the **popup** (toolbar button) and the **options page** (setup wizard, presets, settings). Both are Preact apps that talk to the background only through `sendRequest()` ([architecture.md](./architecture.md#message-protocol)). Styling uses the tokens in `src/ui/theme.css` (light/dark).
+Two UI surfaces: the **popup** (toolbar button) and the **options page** (setup wizard / workspaces, presets, settings). Both are Preact apps that talk to the background only through `sendRequest()` ([architecture.md](./architecture.md#message-protocol)). Styling uses the tokens in `src/ui/theme.css` (light/dark).
 
 ## Popup
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Checking: open (auth/status)
-  Checking --> NoSetup: no token / no host permission
-  Checking --> NoPresets: token ok, 0 presets
-  Checking --> Capturing: token ok, preset selected
+  [*] --> Checking: open (conn/list)
+  Checking --> NoSetup: no connections / no host permission
+  Checking --> NoPresets: connected, 0 presets
+  Checking --> Capturing: connected, preset selected
   Capturing --> Restricted: capture.restricted
   Capturing --> Form: capture + schema + dup check done
   Restricted --> Form: url/title fallback
@@ -25,14 +25,15 @@ stateDiagram-v2
 
 ### No setup
 
-Shown when `auth/status` reports `hasToken: false` or `hostPermission: false`. Message ("Connect Sitecatch to Notion to start saving") plus an **Open setup** button that opens the options wizard. If only the host permission is missing, a **Grant access** button calls `browser.permissions.request` from the click handler. There are no other controls.
+Shown when `conn/list` reports no connections or `hostPermission: false`. Message ("Connect Sitecatch to Notion to start saving") plus an **Open setup** button that opens the options wizard. If only the host permission is missing, a **Grant access** button calls `browser.permissions.request` from the click handler. There are no other controls.
 
 If there are no presets yet: "Create your first preset" → opens Options → Presets.
 
 ### Capturing
 
-- **Preset picker** at the top, preselected with `local:lastPresetId` (falls back to the first preset). Changing the preset stores it as the new `lastPresetId`, re-runs schema validation and the duplicate check, and re-resolves the form. The capture is reused, and the user's edits are kept for properties the new preset also shows with the same input kind (e.g. the title).
-- Three requests run in parallel: `capture/run`, `ds/schema`, `dup/check` (with the tab URL; the capture URL if the tab URL is unknown; skipped when the preset has no dedupe property). Skeletons are shown for the thumbnail and fields, and a polite live region announces "Capturing page…".
+- **Preset picker** at the top, preselected with `local:lastPresetId` (falls back to the first preset). With more than one connected workspace the presets are grouped by workspace (`<optgroup>` per workspace; unresolved presets under "No workspace yet" or "<name> (not connected)"); with one workspace there are no group headers. Picking a preset implicitly picks its workspace — there is no workspace switcher. Changing the preset stores it as the new `lastPresetId`, re-runs schema validation and the duplicate check, and re-resolves the form. The capture is reused, and the user's edits are kept for properties the new preset also shows with the same input kind (e.g. the title).
+- **Unresolved preset** (its workspace isn't connected here, or it has none while several are): no `ds/schema` request; the popup shows the resolver's actionable `no-token` error ("Connect the “<workspace>” workspace in Sitecatch settings, or pick a workspace for this preset.") with **Edit preset**, and Save stays disabled.
+- Three requests run in parallel: `capture/run`, `ds/schema` (with the preset's `connectionId`), `dup/check` (with the tab URL; the capture URL if the tab URL is unknown; skipped when the preset has no dedupe property). Skeletons are shown for the thumbnail and fields, and a polite live region announces "Capturing page…".
 - Capture waits for `readyState === 'complete'` plus the optional delay from Settings.
 - If `capture/run` fails, the error is shown with **Retry** and the form falls back to the tab's URL and title (like a restricted page).
 
@@ -95,11 +96,11 @@ A full tab (`open_in_tab`), opened automatically on install (`runtime.onInstalle
 
 | Route | Screen |
 | --- | --- |
-| `#/setup` | Setup wizard. Default when `auth/status` reports no token. |
+| `#/setup` | **Workspaces**: the setup wizard on first run (default when `conn/list` reports no connections), otherwise the list of connected workspaces. |
 | `#/presets` | Presets list. Default when connected. |
-| `#/presets/new` | Pick a database, then the editor for a new (unsaved) preset. |
+| `#/presets/new` | Pick a workspace (skipped with one), then a database, then the editor for a new (unsaved) preset. |
 | `#/presets/:id` | Preset editor. |
-| `#/settings` | Capture settings, account, import/export, sync note, recent saves. |
+| `#/settings` | Capture settings, workspaces summary, import/export, sync note, recent saves. |
 | `#/help` | Short FAQ linking to these docs (`DOCS_BASE_URL` in `lib/constants.ts`, pointing at `https://github.com/3333444n/sitecatch/blob/main/docs/`). |
 
 ### Setup wizard
@@ -111,19 +112,28 @@ A vertical `Stepper` (completed steps are clickable to go back) and one step at 
 | 1 | **Choose how to connect**: two radio cards, PAT marked *Recommended* | same |
 | 2 | **Create the token**: Developer portal → Personal access tokens → New token → name, capabilities, expiration → Create token; "shown only once" warning; screenshots setup-1…3 | Workspace Owner note; Build → Internal connections → Create a new connection → Configuration: Read/Update/Insert content, No user information → API token Show/Copy; screenshots setup-4…6 |
 | 3 | **Allow access to Notion**: `permissions.contains` first; if missing, **Grant access to api.notion.com** calls `permissions.request({origins:['https://api.notion.com/*']})` synchronously in the click handler. Granted/denied states. Skipped automatically when already granted. setup-7 | same |
-| 4 | **Paste your token**: masked input with a Show/Hide button (eye icon). Pasting validates instantly (`auth/validate {token, tokenKind}`); **Check token** does too. Success shows workspace + bot name; errors via `ErrorBanner` (invalid token gets a method-specific hint; `grant-permission` re-requests access). Continue is enabled once validated. setup-8 | same |
+| 4 | **Paste your token**: masked input with a Show/Hide button (eye icon). Pasting validates instantly (`conn/add {token, tokenKind}`); **Check token** does too. Success shows workspace + bot name; errors via `ErrorBanner` (invalid token gets a method-specific hint; `grant-permission` re-requests access). Continue is enabled once validated. setup-8 | same |
 | 5 | — | **Share your databases**: ••• → Connections → + Add connection → Sitecatch → Confirm, or Developer portal → Content access → Edit access. setup-9, setup-10 |
-| last | **Your databases**: `ds/list` with search (debounced, server-side `query`) and **Refresh**; empty state **"Can't see your database?"** with method-specific causes; **Create your first preset** → `#/presets/new`. setup-11 | same |
+| last | **Your databases**: `ds/list {connectionId}` for the workspace just validated, with search (debounced, server-side `query`) and **Refresh**; empty state **"Can't see your database?"** with method-specific causes; **Create your first preset** → `#/presets/new`. setup-11 | same |
 
-When a token already exists, the wizard opens on the last step and shows a "Connected to Notion" card with **Replace token** (jumps to step 4) and **Disconnect** (`auth/clear`, with confirm).
+### Workspaces
+
+Once at least one workspace is connected, `#/setup` shows **Workspaces** instead of the wizard: one card per connection (workspace name, token kind, bot name) with **Databases** (toggles its `DatabaseList`; open by default with a single workspace), **Replace token** and **Remove** (`conn/remove`, with confirm: the token is forgotten, presets stay and show as needing a workspace). A warning with **Grant access** appears when the host permission is missing.
+
+- **Add workspace** runs the wizard from step 1 under the title "Add a workspace", with a **← Workspaces** link back. `conn/add` adds the workspace, or replaces the token if that workspace is already connected.
+- **Replace token** runs the wizard at step 4 for that workspace's token kind. If the pasted token belongs to a different workspace, it is added as a new one and a warning says the original still uses its old token.
+
+### Unresolved presets
+
+Opening a preset whose workspace isn't resolved here (`connectionId` not connected on this device, or `null` with several workspaces) shows a notice ("This preset belongs to the “<name>” workspace, which isn't connected on this device…") with **Open Workspaces**, and a workspace picker. Picking one reads the preset's data source with that token (`ds/schema`, `force`); on success the preset is saved with that `connectionId` / `workspaceName` and the editor opens with the fresh schema (validation runs as usual). If the data source isn't visible there, an error says so and the user can pick another workspace.
 
 ### Presets list
 
-Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, target database, mapped property count (+ screenshot), and a status badge from `ds/schema` + validation: *Checking…*, *Ready*, *Ready, with notes*, *Needs fix*, *Database not shared* / *Can't check*. Actions: **New preset**, open (click the name), **Move up/down** (chevron icon buttons), **Duplicate** (new id, "(copy)"), **Delete** (inline confirm).
+Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, workspace (when more than one is connected), target database, mapped property count (+ screenshot), and a status badge from `ds/schema` + validation: *Checking…*, *Ready*, *Ready, with notes*, *Needs fix*, *Database not shared* / *Can't check*, and for unresolved presets *Pick a workspace* / *Workspace not connected* (no schema request). Schemas are read with each preset's own connection. Actions: **New preset**, open (click the name), **Move up/down** (chevron icon buttons), **Duplicate** (new id, "(copy)"), **Delete** (inline confirm).
 
 ### Preset editor
 
-1. **Basics**: name; target database shown read-only with **Change**, which opens the database picker, loads the new schema (`ds/schema`, `force`) and re-validates. Mappings are kept by id; **Remove what's missing** prunes those that don't exist in the new database.
+1. **Basics**: name; **Workspace** (with **Change** when several are connected: pick a workspace, then a database in it); target database shown read-only with **Change**, which opens the database picker for the current workspace, loads the new schema (`ds/schema {connectionId}`, `force`) and re-validates. Mappings are kept by id; **Remove what's missing** prunes those that don't exist in the new database.
 2. **Properties**: one row per **writable** schema property (title first), with an **Include** switch. When included, a source picker (the kit's `SegmentedControl`: a radio group, ←/→ to move):
    - **From the page**: extractor dropdown of `compatibleExtractors(type)` (label + description as hint), optional **Fallback**, **Editable in popup** toggle. The `screenshot` extractor is never offered.
    - **Ask in popup**: optional default via `PropertyInput`, **Required** toggle (ask fields always show in the popup).
@@ -133,17 +143,17 @@ Ordered list (`sync:presetIndex`, live via `watchPresets`). Each row: name, targ
 3. **Screenshot, cover and icon**: **Attach screenshot to** (none or a `files` property: `preset.screenshot.filesPropertyId` is the single canonical way; that property's row shows "Gets the screenshot" and any mapping on it is removed), **Page cover** (none / screenshot / og:image), **Add screenshot to the page body**, **Page icon** (none / favicon).
 4. **Duplicate detection**: a url / text / title property or **Off** (new presets default to the first url property).
 5. **Validation**: `validatePreset` plus editor checks (empty name, empty fixed value) run live. Blocking issues show in an error banner and inline on the row, and disable **Save preset**; non-blocking ones (renamed, option will be created) show as "Good to know".
-6. **Save** runs `refreshPropertyNames` and `savePreset`; quota errors show via `ErrorBanner`, and `nearQuota` shows a warning. **Discard changes** restores the saved version. Leaving with unsaved changes (hash navigation or closing the tab) asks for confirmation.
+6. **Save** pins the resolved workspace (`connectionId` + `workspaceName`), then runs `refreshPropertyNames` and `savePreset`; quota errors show via `ErrorBanner`, and `nearQuota` shows a warning. **Discard changes** restores the saved version. Leaving with unsaved changes (hash navigation or closing the tab) asks for confirmation.
 
 ### Settings
 
 - **Capture**: delay before the screenshot (0–10 s slider, 0.5 s steps → `captureDelayMs`) and JPEG quality (50–100 % → `jpegQuality`). Saved on change.
-- **Notion account**: workspace, token kind, host permission state, **Disconnect** (`auth/clear`), **Re-run setup**.
+- **Notion workspaces**: each workspace with token kind and bot name, host permission state, **Manage workspaces** (→ `#/setup`).
 - **Import and export presets** (below).
-- Note on how `storage.sync` follows the browser account, and that the token never syncs.
+- Note on how `storage.sync` follows the browser account, and that tokens never sync (connect each workspace again on another device).
 - **Recent saves** (`local:history`, last 20) with links, when there are any.
 
 ### Import / Export
 
-- **Export** downloads `sitecatch-presets-<YYYY-MM-DD>.json` (`PresetExportFile`, presets only, never the token) via a Blob URL and `<a download>`.
+- **Export** downloads `sitecatch-presets-<YYYY-MM-DD>.json` (`PresetExportFile`, presets only, never tokens) via a Blob URL and `<a download>`.
 - **Import** opens a file picker, validates with `parseImport` (nothing is written if the file is invalid), then previews the presets. If ids already exist, the user picks **Keep both** (default: conflicting imports get a new id and "(imported)" in the name) or **Replace the existing presets**, then confirms. See [preset-model.md](./preset-model.md#import--export).

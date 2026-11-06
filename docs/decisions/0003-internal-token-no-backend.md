@@ -1,6 +1,6 @@
 # 0003. Internal connection token, no backend
 
-- Status: Accepted, amended by [0009](./0009-personal-access-token-default.md) (personal access token is now the default; internal connections remain supported)
+- Status: Accepted, amended by [0009](./0009-personal-access-token-default.md) (personal access token is now the default; internal connections remain supported) and [0010](./0010-multiple-workspace-connections.md) (one token per connected workspace, several workspaces at once)
 - Date: 2026-10
 
 ## Context
