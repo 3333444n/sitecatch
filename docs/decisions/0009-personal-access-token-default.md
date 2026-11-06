@@ -1,6 +1,6 @@
 # 0009. Personal access token as the default
 
-- Status: Accepted
+- Status: Accepted, amended by [0010](./0010-multiple-workspace-connections.md) (one token per connected workspace)
 - Date: 2026-10
 - Amends: [0003](./0003-internal-token-no-backend.md)
 
@@ -10,7 +10,7 @@
 
 ## Decision
 
-Sitecatch supports both token kinds (`AuthState.tokenKind`: `personal` | `connection`). The setup wizard offers the **personal access token first, marked Recommended**; the internal connection stays available for people who want a narrower token or whose workspace restricts PATs. Both are sent identically (`Authorization: Bearer …`). There is still no backend.
+Sitecatch supports both token kinds (`tokenKind`: `personal` | `connection`; stored in `AuthState` in v0.1, per connection in `Connection.tokenKind` since [0010](./0010-multiple-workspace-connections.md)). The setup wizard offers the **personal access token first, marked Recommended**; the internal connection stays available for people who want a narrower token or whose workspace restricts PATs. Both are sent identically (`Authorization: Bearer …`). There is still no backend.
 
 ## Consequences
 

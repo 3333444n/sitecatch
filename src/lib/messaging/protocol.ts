@@ -78,7 +78,7 @@ export interface RequestMap {
     params: { connectionId: string };
     response: null;
   };
-  /** Data sources visible to the integration. */
+  /** Data sources visible to that connection's token (POST /v1/search). */
   'ds/list': {
     params: { connectionId: string; query?: string };
     response: DataSourceSummary[];
